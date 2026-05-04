@@ -2,6 +2,7 @@ package org.hoohoot.odoo;
 
 import io.quarkus.picocli.runtime.annotations.TopCommand;
 import org.hoohoot.odoo.command.CooperatorsCommand;
+import org.hoohoot.odoo.command.CreneauxCommand;
 import picocli.CommandLine.Command;
 
 @TopCommand
@@ -11,7 +12,8 @@ import picocli.CommandLine.Command;
         version = "odoo-cli 1.0.0",
         description = "CLI pour interagir avec une instance Odoo",
         subcommands = {
-                CooperatorsCommand.class
+                CooperatorsCommand.class,
+                CreneauxCommand.class
         }
 )
 public class OdooCli {

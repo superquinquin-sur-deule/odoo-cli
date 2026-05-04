@@ -51,7 +51,7 @@ public class OdooClient {
                     + "' on database '" + config.database() + "'");
         }
         uid = result.intValue();
-        LOG.infof("Authenticated to Odoo as uid=%d", uid);
+        LOG.debugf("Authenticated to Odoo as uid=%d", uid);
         return uid;
     }
 
