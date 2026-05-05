@@ -51,9 +51,11 @@ public class ListCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         List<ShiftTemplate> templates = fetchTemplates();
+        
         if (underMin) {
             templates.removeIf(t -> t.seatsMin() <= 0 || t.seatsReserved() >= t.seatsMin());
         }
+        
         templates.sort(Comparator
                 .comparing(ShiftTemplate::weekName, String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(ShiftTemplate::startDatetime)
@@ -63,8 +65,14 @@ public class ListCommand implements Callable<Integer> {
             case csv -> printCsv(templates);
             case pretty -> printPretty(templates);
         }
-        System.err.printf("%d créneau(x)%n", templates.size());
+        
+        printTotalStats(templates.size());
+        
         return 0;
+    }
+    
+    private void printTotalStats(Integer total) {
+        System.err.printf("%d créneau%s%n", total, total == 1 ? "": "(x)");
     }
 
     private List<ShiftTemplate> fetchTemplates() {
