@@ -43,6 +43,18 @@ public class ListCommand implements Callable<Integer> {
     )
     OutputFormat output;
 
+    @Option(
+            names = "--duplicate-email",
+            description = "N'afficher que les coopérateurs qui partagent leur email avec au moins un autre"
+    )
+    boolean duplicateEmail;
+
+    @Option(
+            names = "--no-email",
+            description = "N'afficher que les coopérateurs sans email"
+    )
+    boolean noEmail;
+
     @Inject
     OdooClient odoo;
 
@@ -59,10 +71,35 @@ public class ListCommand implements Callable<Integer> {
         }
 
         List<Cooperator> coops = fetchCooperators(parsedAtDate);
-        coops.sort((a, b) -> {
-            int c = a.nom().compareToIgnoreCase(b.nom());
-            return c != 0 ? c : a.prenom().compareToIgnoreCase(b.prenom());
-        });
+        if (noEmail) {
+            coops.removeIf(c -> !normalizeEmail(c.email()).isEmpty());
+        }
+        if (duplicateEmail) {
+            Map<String, Long> counts = new HashMap<>();
+            for (Cooperator c : coops) {
+                String key = normalizeEmail(c.email());
+                if (!key.isEmpty()) {
+                    counts.merge(key, 1L, Long::sum);
+                }
+            }
+            coops.removeIf(c -> {
+                String key = normalizeEmail(c.email());
+                return key.isEmpty() || counts.getOrDefault(key, 0L) < 2;
+            });
+        }
+        if (duplicateEmail) {
+            coops.sort((a, b) -> {
+                int c = normalizeEmail(a.email()).compareTo(normalizeEmail(b.email()));
+                if (c != 0) return c;
+                c = a.nom().compareToIgnoreCase(b.nom());
+                return c != 0 ? c : a.prenom().compareToIgnoreCase(b.prenom());
+            });
+        } else {
+            coops.sort((a, b) -> {
+                int c = a.nom().compareToIgnoreCase(b.nom());
+                return c != 0 ? c : a.prenom().compareToIgnoreCase(b.prenom());
+            });
+        }
 
         switch (output) {
             case csv -> printCsv(coops);
@@ -231,6 +268,11 @@ public class ListCommand implements Callable<Integer> {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;
+    }
+
+    private static String normalizeEmail(String email) {
+        if (email == null) return "";
+        return email.trim().toLowerCase();
     }
 
     private static String formatParts(double parts) {

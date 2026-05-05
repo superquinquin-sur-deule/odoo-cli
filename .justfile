@@ -1,0 +1,3 @@
+compile:
+    mvn package -Dnative
+    
