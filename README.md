@@ -22,6 +22,35 @@ En package : `java -jar target/quarkus-app/quarkus-run.jar <commande> ...`.
 
 ## Commandes
 
+### `articles` — gérer les articles (`product.product`)
+
+#### `articles update-internal-references`
+
+Met à jour en masse les références internes (`default_code`) des produits depuis un fichier CSV.
+
+| Option         | Description                                                            |
+|----------------|------------------------------------------------------------------------|
+| `--csv FILE`   | Fichier CSV à 2 colonnes avec en-tête `Name,InternalReference` (requis) |
+
+Pour chaque ligne, la commande recherche un `product.product` dont `name` correspond exactement, puis écrit
+`default_code = InternalReference`. Les produits introuvables ou ambigus (plusieurs correspondances) sont
+listés sur stderr et ignorés. Le séparateur attendu est la virgule ; les valeurs contenant une virgule peuvent
+être entourées de doubles guillemets.
+
+Exemple de CSV :
+
+```csv
+Name,InternalReference
+Pommes Golden,FR-POM-001
+"Bananes, lot 1kg",FR-BAN-002
+```
+
+Exemple :
+
+```bash
+odoo articles update-internal-references --csv produits.csv
+```
+
 ### `cooperators` — gérer les coopérateurs
 
 #### `cooperators list`

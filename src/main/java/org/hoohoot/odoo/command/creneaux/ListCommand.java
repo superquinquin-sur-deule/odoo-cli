@@ -3,6 +3,8 @@ package org.hoohoot.odoo.command.creneaux;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.inject.Inject;
 import org.hoohoot.odoo.client.OdooClient;
+import org.hoohoot.odoo.format.CsvFormatter;
+import org.hoohoot.odoo.format.PrettyFormatter;
 import org.hoohoot.odoo.model.ShiftTemplate;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -20,8 +22,6 @@ import java.util.concurrent.Callable;
 public class ListCommand implements Callable<Integer> {
 
     public enum OutputFormat { pretty, csv }
-
-    private static final String CSV_SEP = ";";
 
     @Option(
             names = "--output",
@@ -47,6 +47,12 @@ public class ListCommand implements Callable<Integer> {
 
     @Inject
     OdooClient odoo;
+
+    @Inject
+    PrettyFormatter pretty;
+
+    @Inject
+    CsvFormatter csv;
 
     @Override
     public Integer call() {
@@ -109,27 +115,22 @@ public class ListCommand implements Callable<Integer> {
     }
 
     private void printCsv(List<ShiftTemplate> templates) {
-        System.out.println(String.join(CSV_SEP,
-                "Id", "Nom", "Semaine", "Type", "Début", "Fin", "Durée", "Min", "Places", "Réservées"));
-        for (ShiftTemplate t : templates) {
-            System.out.println(String.join(CSV_SEP,
-                    String.valueOf(t.id()),
-                    csv(t.name()),
-                    csv(t.weekName()),
-                    csv(t.shiftType()),
-                    csv(t.startDatetime()),
-                    csv(t.endDatetime()),
-                    formatDuration(t.duration()),
-                    String.valueOf(t.seatsMin()),
-                    String.valueOf(t.seatsMax()),
-                    String.valueOf(t.seatsReserved())
-            ));
-        }
+        csv.print(
+                new String[]{"Id", "Nom", "Semaine", "Type", "Début", "Fin", "Durée", "Min", "Places", "Réservées"},
+                toRows(templates)
+        );
     }
 
     private void printPretty(List<ShiftTemplate> templates) {
-        String[] headers = {"Id", "Nom", "Sem.", "Type", "Début", "Fin", "Durée", "Min", "Places", "Rés."};
-        String[][] rows = new String[templates.size()][headers.length];
+        pretty.print(
+                new String[]{"Id", "Nom", "Sem.", "Type", "Début", "Fin", "Durée", "Min", "Places", "Rés."},
+                toRows(templates),
+                new boolean[]{true, false, false, false, false, false, true, true, true, true}
+        );
+    }
+
+    private static String[][] toRows(List<ShiftTemplate> templates) {
+        String[][] rows = new String[templates.size()][];
         for (int i = 0; i < templates.size(); i++) {
             ShiftTemplate t = templates.get(i);
             rows[i] = new String[]{
@@ -145,37 +146,7 @@ public class ListCommand implements Callable<Integer> {
                     String.valueOf(t.seatsReserved())
             };
         }
-
-        int[] widths = new int[headers.length];
-        for (int i = 0; i < headers.length; i++) {
-            widths[i] = headers[i].length();
-        }
-        for (String[] row : rows) {
-            for (int i = 0; i < row.length; i++) {
-                widths[i] = Math.max(widths[i], row[i].length());
-            }
-        }
-
-        boolean[] rightAlign = {true, false, false, false, false, false, true, true, true, true};
-        printRow(headers, widths, rightAlign);
-        String[] sep = new String[headers.length];
-        for (int i = 0; i < headers.length; i++) {
-            sep[i] = "-".repeat(widths[i]);
-        }
-        printRow(sep, widths, new boolean[headers.length]);
-        for (String[] row : rows) {
-            printRow(row, widths, rightAlign);
-        }
-    }
-
-    private static void printRow(String[] cells, int[] widths, boolean[] rightAlign) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < cells.length; i++) {
-            String fmt = "%" + (rightAlign[i] ? "" : "-") + widths[i] + "s";
-            sb.append(String.format(fmt, cells[i]));
-            if (i < cells.length - 1) sb.append("  ");
-        }
-        System.out.println(sb);
+        return rows;
     }
 
     private static String textOrEmpty(JsonNode node, String field) {
@@ -192,14 +163,6 @@ public class ListCommand implements Callable<Integer> {
             return "";
         }
         return v.get(1).asText("");
-    }
-
-    private static String csv(String value) {
-        if (value == null) return "";
-        if (value.contains(CSV_SEP) || value.contains("\"") || value.contains("\n")) {
-            return "\"" + value.replace("\"", "\"\"") + "\"";
-        }
-        return value;
     }
 
     private static String formatDuration(double duration) {

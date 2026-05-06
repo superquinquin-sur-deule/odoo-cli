@@ -39,6 +39,14 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
             ]
             """;
 
+    private static final String PRODUCT_POMMES = """
+            [{"id":42,"name":"Pommes","default_code":"OLD"}]
+            """;
+
+    private static final String PRODUCT_BANANES = """
+            [{"id":43,"name":"Bananes, lot","default_code":false},{"id":44,"name":"Bananes, lot","default_code":"X"}]
+            """;
+
     private WireMockServer server;
 
     @Override
@@ -61,6 +69,29 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
         server.stubFor(post("/jsonrpc")
                 .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.template")))
                 .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + TEMPLATES + "}")));
+
+        server.stubFor(post("/jsonrpc")
+                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
+                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                .withRequestBody(matchingJsonPath("$.params.args[5][0][0][2]", equalTo("Pommes")))
+                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PRODUCT_POMMES + "}")));
+
+        server.stubFor(post("/jsonrpc")
+                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
+                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                .withRequestBody(matchingJsonPath("$.params.args[5][0][0][2]", equalTo("Bananes, lot")))
+                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PRODUCT_BANANES + "}")));
+
+        server.stubFor(post("/jsonrpc")
+                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
+                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                .withRequestBody(matchingJsonPath("$.params.args[5][0][0][2]", equalTo("Inconnu")))
+                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":[]}")));
+
+        server.stubFor(post("/jsonrpc")
+                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
+                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("write")))
+                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
 
         return Map.of("odoo.url", server.baseUrl());
     }
