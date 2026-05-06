@@ -18,8 +18,8 @@ Assurez-vous que `~/.local/bin` est dans votre `PATH` (le script vous le rappell
 Une fois installé, le binaire peut se mettre à jour lui-même :
 
 ```bash
-odoo update            # télécharge et remplace le binaire courant
-odoo update --check    # affiche la dernière version sans installer
+odoo-cli update            # télécharge et remplace le binaire courant
+odoo-cli update --check    # affiche la dernière version sans installer
 ```
 
 La commande `update` n'est disponible que sur le binaire natif (le remplacement in-place du binaire `java` n'a pas de sens en mode JVM).
@@ -40,6 +40,7 @@ Les credentials sont lus depuis `application.properties` ou un fichier `.env` à
 
 En dev : `mvn quarkus:dev -Dquarkus.args="<commande> <sous-commande> [options]"`.
 En package : `java -jar target/quarkus-app/quarkus-run.jar <commande> ...`.
+Le cli : `odoo-cli <commande> ...`
 
 ## Commandes
 
@@ -69,7 +70,7 @@ Pommes Golden,FR-POM-001
 Exemple :
 
 ```bash
-odoo articles update-internal-references --csv produits.csv
+odoo-cli articles update-internal-references --csv produits.csv
 ```
 
 ### `cooperators` — gérer les coopérateurs
@@ -103,13 +104,13 @@ Avec `--group-by binome`, chaque binôme est inséré juste après son coopérat
 Exemples :
 
 ```bash
-odoo cooperators list
-odoo cooperators list --at-date 31/12/2025 --output csv
-odoo cooperators list --duplicate-email
-odoo cooperators list --no-email
-odoo cooperators list --group-by binome
-odoo cooperators list --sort-by capital --sort-direction desc
-odoo cooperators list --sort-by inscription
+odoo-cli cooperators list
+odoo-cli cooperators list --at-date 31/12/2025 --output csv
+odoo-cli cooperators list --duplicate-email
+odoo-cli cooperators list --no-email
+odoo-cli cooperators list --group-by binome
+odoo-cli cooperators list --sort-by capital --sort-direction desc
+odoo-cli cooperators list --sort-by inscription
 ```
 
 ### `creneaux` — gérer les créneaux (`shift.template`)
@@ -129,10 +130,10 @@ Tri par défaut : semaine, puis date de début, puis nom.
 Exemples :
 
 ```bash
-odoo creneaux list
-odoo creneaux list --output csv
-odoo creneaux list --no-active-only
-odoo creneaux list --under-min
+odoo-cli creneaux list
+odoo-cli creneaux list --output csv
+odoo-cli creneaux list --no-active-only
+odoo-cli creneaux list --under-min
 ```
 
 ## Tests
