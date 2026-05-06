@@ -26,6 +26,10 @@ public class ListCommand implements Callable<Integer> {
 
     public enum OutputFormat { pretty, csv }
 
+    public enum GroupBy { binome }
+
+    private static final String BINOME_PREFIX = "└─→";
+
     private static final DateTimeFormatter INPUT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter ODOO_FMT = DateTimeFormatter.ISO_LOCAL_DATE;
 
@@ -55,6 +59,13 @@ public class ListCommand implements Callable<Integer> {
             description = "N'afficher que les coopérateurs sans email"
     )
     boolean noEmail;
+
+    @Option(
+            names = "--group-by",
+            paramLabel = "GROUP",
+            description = "Grouper la sortie : ${COMPLETION-CANDIDATES}"
+    )
+    GroupBy groupBy;
 
     @Inject
     OdooClient odoo;
@@ -108,14 +119,73 @@ public class ListCommand implements Callable<Integer> {
             });
         }
 
+        Map<Integer, List<Cooperator>> binomesByParent = Map.of();
+        if (groupBy == GroupBy.binome) {
+            binomesByParent = fetchBinomesByParent(coops);
+        }
+
         switch (output) {
-            case csv -> printCsv(coops);
-            case pretty -> printPretty(coops);
+            case csv -> printCsv(coops, binomesByParent);
+            case pretty -> printPretty(coops, binomesByParent);
         }
         System.err.printf("%d coopérateur(s)%s%n",
                 coops.size(),
                 parsedAtDate != null ? " au " + atDate : "");
         return 0;
+    }
+
+    private Map<Integer, List<Cooperator>> fetchBinomesByParent(List<Cooperator> coops) {
+        if (coops.isEmpty()) {
+            return Map.of();
+        }
+        List<Integer> parentIds = new ArrayList<>();
+        for (Cooperator c : coops) {
+            parentIds.add(c.id());
+        }
+        List<Object> domain = List.of(
+                List.of("parent_id", "in", parentIds),
+                List.of("is_associated_people", "=", true)
+        );
+        List<String> fields = List.of("id", "name", "email", "street", "zip", "city", "parent_id");
+        JsonNode partners = odoo.searchRead("res.partner", domain, fields);
+
+        Map<Integer, List<Cooperator>> result = new HashMap<>();
+        if (partners == null || !partners.isArray()) {
+            return result;
+        }
+        for (JsonNode p : partners) {
+            JsonNode parentRef = p.get("parent_id");
+            if (parentRef == null || !parentRef.isArray() || parentRef.isEmpty()) {
+                continue;
+            }
+            int parentId = parentRef.get(0).asInt();
+            int id = p.get("id").asInt();
+            String fullName = textOrEmpty(p, "name");
+            String nom;
+            String prenom;
+            int comma = fullName.indexOf(',');
+            if (comma >= 0) {
+                nom = fullName.substring(0, comma).trim();
+                prenom = fullName.substring(comma + 1).trim();
+            } else {
+                nom = fullName;
+                prenom = "";
+            }
+            String address = String.format("%s %s %s",
+                    textOrEmpty(p, "street"),
+                    textOrEmpty(p, "zip"),
+                    textOrEmpty(p, "city")
+            ).replaceAll("\\s+", " ").trim();
+            result.computeIfAbsent(parentId, k -> new ArrayList<>())
+                    .add(new Cooperator(id, nom, prenom, textOrEmpty(p, "email"), address, 0, 0));
+        }
+        for (List<Cooperator> list : result.values()) {
+            list.sort((a, b) -> {
+                int c = a.nom().compareToIgnoreCase(b.nom());
+                return c != 0 ? c : a.prenom().compareToIgnoreCase(b.prenom());
+            });
+        }
+        return result;
     }
 
     private List<Cooperator> fetchCooperators(LocalDate parsedAtDate) {
@@ -198,26 +268,25 @@ public class ListCommand implements Callable<Integer> {
         return result;
     }
 
-    private void printCsv(List<Cooperator> coops) {
+    private void printCsv(List<Cooperator> coops, Map<Integer, List<Cooperator>> binomesByParent) {
         csv.print(
                 new String[]{"Id", "Nom", "Prenom", "Email", "Adresse", "Nb de parts", "Capital"},
-                toRows(coops)
+                toRows(coops, binomesByParent)
         );
     }
 
-    private void printPretty(List<Cooperator> coops) {
+    private void printPretty(List<Cooperator> coops, Map<Integer, List<Cooperator>> binomesByParent) {
         pretty.print(
                 new String[]{"Id", "Nom", "Prénom", "Email", "Adresse", "Parts", "Capital"},
-                toRows(coops),
+                toRows(coops, binomesByParent),
                 new boolean[]{true, false, false, false, false, true, true}
         );
     }
 
-    private static String[][] toRows(List<Cooperator> coops) {
-        String[][] rows = new String[coops.size()][];
-        for (int i = 0; i < coops.size(); i++) {
-            Cooperator c = coops.get(i);
-            rows[i] = new String[]{
+    private static String[][] toRows(List<Cooperator> coops, Map<Integer, List<Cooperator>> binomesByParent) {
+        List<String[]> rows = new ArrayList<>();
+        for (Cooperator c : coops) {
+            rows.add(new String[]{
                     String.valueOf(c.id()),
                     c.nom(),
                     c.prenom(),
@@ -225,9 +294,20 @@ public class ListCommand implements Callable<Integer> {
                     c.address(),
                     formatParts(c.parts()),
                     String.valueOf(c.capital())
-            };
+            });
+            for (Cooperator b : binomesByParent.getOrDefault(c.id(), List.of())) {
+                rows.add(new String[]{
+                        BINOME_PREFIX,
+                        b.nom(),
+                        b.prenom(),
+                        b.email(),
+                        b.address(),
+                        "",
+                        ""
+                });
+            }
         }
-        return rows;
+        return rows.toArray(new String[0][]);
     }
 
     private static String textOrEmpty(JsonNode node, String field) {

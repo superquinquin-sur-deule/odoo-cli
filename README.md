@@ -1,7 +1,6 @@
 # odoo-cli
 
-CLI Quarkus 3 (Java 21) qui interroge une instance Odoo via JSON-RPC. Inspiré
-de https://github.com/superquinquin/odoo-scripts-ng.
+CLI Quarkus 3 (Java 21) qui interroge une instance Odoo v12 + Module FoodCoop via JSON-RPC.
 
 ## Configuration
 
@@ -64,9 +63,14 @@ Liste les coopérateurs (membres de `res.partner` ayant souscrit du capital via 
 | `--output FORMAT`   | Format de sortie : `pretty` (défaut) ou `csv` (séparateur `;`)                                                    |
 | `--no-email`        | N'afficher que les coopérateurs sans email                                                                        |
 | `--duplicate-email` | N'afficher que les coopérateurs partageant leur email avec au moins un autre ; les lignes sont groupées par email |
+| `--group-by GROUP`  | Grouper la sortie. Valeur acceptée : `binome` — affiche le binôme (`is_associated_people=true`) sous le principal |
 
 Tri par défaut : nom puis prénom (case-insensitive). Avec `--duplicate-email`, le tri devient email, puis nom, puis
 prénom (pour grouper les doublons).
+
+Avec `--group-by binome`, chaque binôme est inséré juste après son coopérateur principal. La colonne `Id` contient
+`└─→` (flèche à angle droit pointant du principal vers le binôme) et les colonnes `Parts` / `Capital` sont vides
+(un binôme ne détient pas de parts).
 
 Exemples :
 
@@ -75,6 +79,7 @@ odoo cooperators list
 odoo cooperators list --at-date 31/12/2025 --output csv
 odoo cooperators list --duplicate-email
 odoo cooperators list --no-email
+odoo cooperators list --group-by binome
 ```
 
 ### `creneaux` — gérer les créneaux (`shift.template`)

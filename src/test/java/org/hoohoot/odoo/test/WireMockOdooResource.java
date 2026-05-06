@@ -31,6 +31,12 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
             ]
             """;
 
+    private static final String BINOMES = """
+            [
+              {"id":5,"name":"Smith, Eve","email":"eve@example.com","street":"2 rue","zip":"75002","city":"Paris","parent_id":[2,"Smith, Bob"]}
+            ]
+            """;
+
     private static final String TEMPLATES = """
             [
               {"id":1,"name":"Mon AM","week_name":"A","shift_type_id":[1,"Standard"],"start_datetime_tz":"2026-01-05 09:00:00","end_datetime_tz":"2026-01-05 12:00:00","duration":3,"seats_min":2,"seats_max":5,"seats_reserved":1},
@@ -60,7 +66,13 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
 
         server.stubFor(post("/jsonrpc")
                 .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                .withRequestBody(matchingJsonPath("$.params.args[5][0][0][0]", equalTo("is_member")))
                 .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PARTNERS + "}")));
+
+        server.stubFor(post("/jsonrpc")
+                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                .withRequestBody(matchingJsonPath("$.params.args[5][0][0][0]", equalTo("parent_id")))
+                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + BINOMES + "}")));
 
         server.stubFor(post("/jsonrpc")
                 .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("account.invoice")))

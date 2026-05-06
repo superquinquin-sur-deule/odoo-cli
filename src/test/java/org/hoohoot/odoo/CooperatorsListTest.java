@@ -47,4 +47,33 @@ class CooperatorsListTest {
                 .doesNotContain("Brown;Dave");
         assertThat(result.getErrorOutput()).contains("2 coopérateur");
     }
+
+    @Test
+    @Launch({"cooperators", "list", "--output", "csv", "--group-by", "binome"})
+    void groupByBinomeCsv(LaunchResult result) {
+        assertThat(result.exitCode()).isZero();
+        String output = result.getOutput();
+        assertThat(output)
+                .contains("Smith;Bob;bob@example.com")
+                .contains("└─→;Smith;Eve;eve@example.com");
+        int bobIdx = output.indexOf("Smith;Bob");
+        int eveIdx = output.indexOf("Smith;Eve");
+        assertThat(eveIdx).isGreaterThan(bobIdx);
+    }
+
+    @Test
+    @Launch({"cooperators", "list", "--group-by", "binome"})
+    void groupByBinomePretty(LaunchResult result) {
+        assertThat(result.exitCode()).isZero();
+        String output = result.getOutput();
+        assertThat(output)
+                .contains("Bob")
+                .contains("└─→")
+                .contains("Eve");
+        int bobIdx = output.indexOf("Bob");
+        int eveIdx = output.indexOf("Eve");
+        int arrowIdx = output.indexOf("└─→");
+        assertThat(arrowIdx).isGreaterThan(bobIdx);
+        assertThat(eveIdx).isGreaterThan(arrowIdx);
+    }
 }
