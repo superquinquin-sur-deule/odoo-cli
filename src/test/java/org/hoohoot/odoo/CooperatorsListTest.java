@@ -76,4 +76,58 @@ class CooperatorsListTest {
         assertThat(arrowIdx).isGreaterThan(bobIdx);
         assertThat(eveIdx).isGreaterThan(arrowIdx);
     }
+
+    @Test
+    @Launch({"cooperators", "list", "--output", "csv"})
+    void inscriptionDateInOutput(LaunchResult result) {
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.getOutput())
+                .contains("Inscription")
+                .contains("Doe;Alice;alice@example.com;1 rue 75001 Paris;1;100;15/01/2020")
+                .contains("Smith;Bob;bob@example.com;;1;50;10/06/2021")
+                .contains("Jones;Carol;alice@example.com;;1;75;20/03/2019")
+                .contains("Brown;Dave;;;1;25;05/11/2022");
+    }
+
+    @Test
+    @Launch({"cooperators", "list", "--output", "csv", "--sort-by", "capital"})
+    void sortByCapitalAsc(LaunchResult result) {
+        assertThat(result.exitCode()).isZero();
+        String output = result.getOutput();
+        int brown = output.indexOf("Brown;Dave");
+        int smith = output.indexOf("Smith;Bob");
+        int jones = output.indexOf("Jones;Carol");
+        int doe = output.indexOf("Doe;Alice");
+        assertThat(brown).isLessThan(smith);
+        assertThat(smith).isLessThan(jones);
+        assertThat(jones).isLessThan(doe);
+    }
+
+    @Test
+    @Launch({"cooperators", "list", "--output", "csv", "--sort-by", "capital", "--sort-direction", "desc"})
+    void sortByCapitalDesc(LaunchResult result) {
+        assertThat(result.exitCode()).isZero();
+        String output = result.getOutput();
+        int brown = output.indexOf("Brown;Dave");
+        int smith = output.indexOf("Smith;Bob");
+        int jones = output.indexOf("Jones;Carol");
+        int doe = output.indexOf("Doe;Alice");
+        assertThat(doe).isLessThan(jones);
+        assertThat(jones).isLessThan(smith);
+        assertThat(smith).isLessThan(brown);
+    }
+
+    @Test
+    @Launch({"cooperators", "list", "--output", "csv", "--sort-by", "inscription"})
+    void sortByInscriptionAsc(LaunchResult result) {
+        assertThat(result.exitCode()).isZero();
+        String output = result.getOutput();
+        int jones = output.indexOf("Jones;Carol");
+        int doe = output.indexOf("Doe;Alice");
+        int smith = output.indexOf("Smith;Bob");
+        int brown = output.indexOf("Brown;Dave");
+        assertThat(jones).isLessThan(doe);
+        assertThat(doe).isLessThan(smith);
+        assertThat(smith).isLessThan(brown);
+    }
 }

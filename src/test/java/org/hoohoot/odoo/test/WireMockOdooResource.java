@@ -24,10 +24,10 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
 
     private static final String INVOICES = """
             [
-              {"partner_id":[1,"Doe, Alice"],"amount_total_signed":100,"date_invoice":"2020-01-01"},
-              {"partner_id":[2,"Smith, Bob"],"amount_total_signed":50,"date_invoice":"2020-01-01"},
-              {"partner_id":[3,"Jones, Carol"],"amount_total_signed":75,"date_invoice":"2020-01-01"},
-              {"partner_id":[4,"Brown, Dave"],"amount_total_signed":25,"date_invoice":"2020-01-01"}
+              {"partner_id":[1,"Doe, Alice"],"amount_total_signed":100,"date_invoice":"2020-01-15"},
+              {"partner_id":[2,"Smith, Bob"],"amount_total_signed":50,"date_invoice":"2021-06-10"},
+              {"partner_id":[3,"Jones, Carol"],"amount_total_signed":75,"date_invoice":"2019-03-20"},
+              {"partner_id":[4,"Brown, Dave"],"amount_total_signed":25,"date_invoice":"2022-11-05"}
             ]
             """;
 

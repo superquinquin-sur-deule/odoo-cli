@@ -1,5 +1,7 @@
 package org.hoohoot.odoo.model;
 
+import java.time.LocalDate;
+
 public record Cooperator(
         int id,
         String nom,
@@ -7,5 +9,6 @@ public record Cooperator(
         String email,
         String address,
         double parts,
-        long capital
+        long capital,
+        LocalDate inscriptionDate
 ) {}

@@ -57,16 +57,22 @@ odoo articles update-internal-references --csv produits.csv
 Liste les coopérateurs (membres de `res.partner` ayant souscrit du capital via `account.invoice`
 `is_capital_fundraising=true`, état `paid`).
 
-| Option              | Description                                                                                                       |
-|---------------------|-------------------------------------------------------------------------------------------------------------------|
-| `--at-date DATE`    | Ne compte que les parts dont `date_invoice <= DATE` (format `jj/MM/aaaa`)                                         |
-| `--output FORMAT`   | Format de sortie : `pretty` (défaut) ou `csv` (séparateur `;`)                                                    |
-| `--no-email`        | N'afficher que les coopérateurs sans email                                                                        |
-| `--duplicate-email` | N'afficher que les coopérateurs partageant leur email avec au moins un autre ; les lignes sont groupées par email |
-| `--group-by GROUP`  | Grouper la sortie. Valeur acceptée : `binome` — affiche le binôme (`is_associated_people=true`) sous le principal |
+| Option                  | Description                                                                                                       |
+|-------------------------|-------------------------------------------------------------------------------------------------------------------|
+| `--at-date DATE`        | Ne compte que les parts dont `date_invoice <= DATE` (format `jj/MM/aaaa`)                                         |
+| `--output FORMAT`       | Format de sortie : `pretty` (défaut) ou `csv` (séparateur `;`)                                                    |
+| `--no-email`            | N'afficher que les coopérateurs sans email                                                                        |
+| `--duplicate-email`     | N'afficher que les coopérateurs partageant leur email avec au moins un autre ; les lignes sont groupées par email |
+| `--group-by GROUP`      | Grouper la sortie. Valeur acceptée : `binome` — affiche le binôme (`is_associated_people=true`) sous le principal |
+| `--sort-by COLUMN`      | Trier par colonne : `id`, `nom`, `prenom`, `email`, `adresse`, `parts`, `capital`, `inscription`                  |
+| `--sort-direction DIR`  | Sens du tri : `asc` (défaut) ou `desc` ; appliqué uniquement avec `--sort-by`                                     |
 
-Tri par défaut : nom puis prénom (case-insensitive). Avec `--duplicate-email`, le tri devient email, puis nom, puis
-prénom (pour grouper les doublons).
+La colonne `Inscription` correspond à la date de la première facture de souscription au capital (état `paid`),
+formatée en `jj/MM/aaaa`.
+
+Tri par défaut (sans `--sort-by`) : nom puis prénom (case-insensitive). Avec `--duplicate-email`, le tri devient
+email, puis nom, puis prénom (pour grouper les doublons). Quand `--sort-by` est fourni, il prend le pas sur ces tris
+par défaut.
 
 Avec `--group-by binome`, chaque binôme est inséré juste après son coopérateur principal. La colonne `Id` contient
 `└─→` (flèche à angle droit pointant du principal vers le binôme) et les colonnes `Parts` / `Capital` sont vides
@@ -80,6 +86,8 @@ odoo cooperators list --at-date 31/12/2025 --output csv
 odoo cooperators list --duplicate-email
 odoo cooperators list --no-email
 odoo cooperators list --group-by binome
+odoo cooperators list --sort-by capital --sort-direction desc
+odoo cooperators list --sort-by inscription
 ```
 
 ### `creneaux` — gérer les créneaux (`shift.template`)

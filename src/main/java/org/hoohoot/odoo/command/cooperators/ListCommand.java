@@ -12,6 +12,7 @@ import picocli.CommandLine.Option;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,10 +29,15 @@ public class ListCommand implements Callable<Integer> {
 
     public enum GroupBy { binome }
 
+    public enum SortBy { id, nom, prenom, email, adresse, parts, capital, inscription }
+
+    public enum SortDirection { asc, desc }
+
     private static final String BINOME_PREFIX = "└─→";
 
     private static final DateTimeFormatter INPUT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter ODOO_FMT = DateTimeFormatter.ISO_LOCAL_DATE;
+    private static final DateTimeFormatter DISPLAY_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     @Option(
             names = "--at-date",
@@ -66,6 +72,21 @@ public class ListCommand implements Callable<Integer> {
             description = "Grouper la sortie : ${COMPLETION-CANDIDATES}"
     )
     GroupBy groupBy;
+
+    @Option(
+            names = "--sort-by",
+            paramLabel = "COLUMN",
+            description = "Colonne de tri : ${COMPLETION-CANDIDATES}"
+    )
+    SortBy sortBy;
+
+    @Option(
+            names = "--sort-direction",
+            paramLabel = "DIR",
+            description = "Sens du tri : ${COMPLETION-CANDIDATES} (défaut: ${DEFAULT-VALUE})",
+            defaultValue = "asc"
+    )
+    SortDirection sortDirection;
 
     @Inject
     OdooClient odoo;
@@ -105,19 +126,7 @@ public class ListCommand implements Callable<Integer> {
                 return key.isEmpty() || counts.getOrDefault(key, 0L) < 2;
             });
         }
-        if (duplicateEmail) {
-            coops.sort((a, b) -> {
-                int c = normalizeEmail(a.email()).compareTo(normalizeEmail(b.email()));
-                if (c != 0) return c;
-                c = a.nom().compareToIgnoreCase(b.nom());
-                return c != 0 ? c : a.prenom().compareToIgnoreCase(b.prenom());
-            });
-        } else {
-            coops.sort((a, b) -> {
-                int c = a.nom().compareToIgnoreCase(b.nom());
-                return c != 0 ? c : a.prenom().compareToIgnoreCase(b.prenom());
-            });
-        }
+        coops.sort(buildComparator());
 
         Map<Integer, List<Cooperator>> binomesByParent = Map.of();
         if (groupBy == GroupBy.binome) {
@@ -132,6 +141,34 @@ public class ListCommand implements Callable<Integer> {
                 coops.size(),
                 parsedAtDate != null ? " au " + atDate : "");
         return 0;
+    }
+
+    private Comparator<Cooperator> buildComparator() {
+        if (sortBy != null) {
+            Comparator<Cooperator> cmp = switch (sortBy) {
+                case id -> Comparator.comparingInt(Cooperator::id);
+                case nom -> Comparator.comparing(Cooperator::nom, String.CASE_INSENSITIVE_ORDER);
+                case prenom -> Comparator.comparing(Cooperator::prenom, String.CASE_INSENSITIVE_ORDER);
+                case email -> Comparator.<Cooperator, String>comparing(c -> normalizeEmail(c.email()));
+                case adresse -> Comparator.comparing(Cooperator::address, String.CASE_INSENSITIVE_ORDER);
+                case parts -> Comparator.comparingDouble(Cooperator::parts);
+                case capital -> Comparator.comparingLong(Cooperator::capital);
+                case inscription -> Comparator.comparing(
+                        Cooperator::inscriptionDate,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                );
+            };
+            return sortDirection == SortDirection.desc ? cmp.reversed() : cmp;
+        }
+        if (duplicateEmail) {
+            return Comparator
+                    .<Cooperator, String>comparing(c -> normalizeEmail(c.email()))
+                    .thenComparing(Cooperator::nom, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(Cooperator::prenom, String.CASE_INSENSITIVE_ORDER);
+        }
+        return Comparator
+                .comparing(Cooperator::nom, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(Cooperator::prenom, String.CASE_INSENSITIVE_ORDER);
     }
 
     private Map<Integer, List<Cooperator>> fetchBinomesByParent(List<Cooperator> coops) {
@@ -177,7 +214,7 @@ public class ListCommand implements Callable<Integer> {
                     textOrEmpty(p, "city")
             ).replaceAll("\\s+", " ").trim();
             result.computeIfAbsent(parentId, k -> new ArrayList<>())
-                    .add(new Cooperator(id, nom, prenom, textOrEmpty(p, "email"), address, 0, 0));
+                    .add(new Cooperator(id, nom, prenom, textOrEmpty(p, "email"), address, 0, 0, null));
         }
         for (List<Cooperator> list : result.values()) {
             list.sort((a, b) -> {
@@ -220,6 +257,7 @@ public class ListCommand implements Callable<Integer> {
         );
 
         Map<Integer, Double> capitalByPartner = new HashMap<>();
+        Map<Integer, LocalDate> firstInvoiceByPartner = new HashMap<>();
         if (invoices != null && invoices.isArray()) {
             for (JsonNode inv : invoices) {
                 JsonNode partnerRef = inv.get("partner_id");
@@ -229,6 +267,15 @@ public class ListCommand implements Callable<Integer> {
                 int pid = partnerRef.get(0).asInt();
                 double amount = inv.get("amount_total_signed").asDouble(0);
                 capitalByPartner.merge(pid, amount, Double::sum);
+
+                String dateText = textOrEmpty(inv, "date_invoice");
+                if (!dateText.isEmpty()) {
+                    try {
+                        LocalDate d = LocalDate.parse(dateText, ODOO_FMT);
+                        firstInvoiceByPartner.merge(pid, d, (a, b) -> a.isBefore(b) ? a : b);
+                    } catch (Exception ignore) {
+                    }
+                }
             }
         }
 
@@ -262,7 +309,8 @@ public class ListCommand implements Callable<Integer> {
                     textOrEmpty(p, "email"),
                     address,
                     p.path("total_partner_owned_share").asDouble(0),
-                    (long) capital
+                    (long) capital,
+                    firstInvoiceByPartner.get(id)
             ));
         }
         return result;
@@ -270,16 +318,16 @@ public class ListCommand implements Callable<Integer> {
 
     private void printCsv(List<Cooperator> coops, Map<Integer, List<Cooperator>> binomesByParent) {
         csv.print(
-                new String[]{"Id", "Nom", "Prenom", "Email", "Adresse", "Nb de parts", "Capital"},
+                new String[]{"Id", "Nom", "Prenom", "Email", "Adresse", "Nb de parts", "Capital", "Inscription"},
                 toRows(coops, binomesByParent)
         );
     }
 
     private void printPretty(List<Cooperator> coops, Map<Integer, List<Cooperator>> binomesByParent) {
         pretty.print(
-                new String[]{"Id", "Nom", "Prénom", "Email", "Adresse", "Parts", "Capital"},
+                new String[]{"Id", "Nom", "Prénom", "Email", "Adresse", "Parts", "Capital", "Inscription"},
                 toRows(coops, binomesByParent),
-                new boolean[]{true, false, false, false, false, true, true}
+                new boolean[]{true, false, false, false, false, true, true, false}
         );
     }
 
@@ -293,7 +341,8 @@ public class ListCommand implements Callable<Integer> {
                     c.email(),
                     c.address(),
                     formatParts(c.parts()),
-                    String.valueOf(c.capital())
+                    String.valueOf(c.capital()),
+                    formatDate(c.inscriptionDate())
             });
             for (Cooperator b : binomesByParent.getOrDefault(c.id(), List.of())) {
                 rows.add(new String[]{
@@ -302,6 +351,7 @@ public class ListCommand implements Callable<Integer> {
                         b.prenom(),
                         b.email(),
                         b.address(),
+                        "",
                         "",
                         ""
                 });
@@ -328,5 +378,9 @@ public class ListCommand implements Callable<Integer> {
             return String.valueOf((long) parts);
         }
         return String.valueOf(parts);
+    }
+
+    private static String formatDate(LocalDate date) {
+        return date == null ? "" : date.format(DISPLAY_FMT);
     }
 }
