@@ -2,6 +2,17 @@
 
 CLI Quarkus 3 (Java 21) qui interroge une instance Odoo v12 + Module FoodCoop via JSON-RPC.
 
+## Installation
+
+Installation rapide de la dernière version (binaire natif Linux x86_64) dans `~/.local/bin` :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/superquinquin-sur-deule/odoo-cli/main/install.sh | sh
+```
+
+Le script télécharge la dernière release GitHub, place le binaire dans `~/.local/bin/odoo-cli` et le rend exécutable.
+Assurez-vous que `~/.local/bin` est dans votre `PATH` (le script vous le rappellera sinon).
+
 ## Configuration
 
 Les credentials sont lus depuis `application.properties` ou un fichier `.env` à la racine :
