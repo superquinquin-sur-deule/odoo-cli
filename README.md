@@ -13,6 +13,17 @@ curl -fsSL https://raw.githubusercontent.com/superquinquin-sur-deule/odoo-cli/ma
 Le script télécharge la dernière release GitHub, place le binaire dans `~/.local/bin/odoo-cli` et le rend exécutable.
 Assurez-vous que `~/.local/bin` est dans votre `PATH` (le script vous le rappellera sinon).
 
+### Mise à jour
+
+Une fois installé, le binaire peut se mettre à jour lui-même :
+
+```bash
+odoo update            # télécharge et remplace le binaire courant
+odoo update --check    # affiche la dernière version sans installer
+```
+
+La commande `update` n'est disponible que sur le binaire natif (le remplacement in-place du binaire `java` n'a pas de sens en mode JVM).
+
 ## Configuration
 
 Les credentials sont lus depuis `application.properties` ou un fichier `.env` à la racine :
