@@ -26,15 +26,15 @@ La commande `update` n'est disponible que sur le binaire natif (le remplacement 
 
 ## Configuration
 
-Les credentials sont lus depuis `application.properties` ou un fichier `.env` à la racine :
+Les credentials sont lus depuis `application.properties` les variables d'environnement ou un fichier `.env` à la racine :
 
-| Clé                    | Description                                     |
-|------------------------|-------------------------------------------------|
-| `odoo.url`             | URL de l'instance (ex: `http://localhost:8069`) |
-| `odoo.database`        | Nom de la base                                  |
-| `odoo.login`           | Login utilisateur                               |
-| `odoo.password`        | Mot de passe                                    |
-| `odoo.timeout-seconds` | Timeout HTTP (défaut: 60)                       |
+| Property               | Env Var              | Description                                     | 
+|------------------------|----------------------|-------------------------------------------------|
+| `odoo.url`             | ODOO_URL             | URL de l'instance (ex: `http://localhost:8069`) |
+| `odoo.database`        | ODOO_DATABASE        | Nom de la base                                  |
+| `odoo.login`           | ODOO_LOGIN           | Login utilisateur                               |
+| `odoo.password`        | ODOO_PASSWORD        | Mot de passe                                    |
+| `odoo.timeout-seconds` | ODOO_TIMEOUT_SECONDS | Timeout HTTP (défaut: 60)                       |
 
 ## Lancement
 
