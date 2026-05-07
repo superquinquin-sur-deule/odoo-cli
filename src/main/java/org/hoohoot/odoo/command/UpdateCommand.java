@@ -1,5 +1,6 @@
 package org.hoohoot.odoo.command;
 
+import org.hoohoot.odoo.OdooCli;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -33,15 +34,25 @@ public class UpdateCommand implements Callable<Integer> {
                 System.err.println("Impossible de résoudre la dernière release de " + REPO);
                 return 2;
             }
+            String latestVersion = tag.startsWith("v") ? tag.substring(1) : tag;
+            boolean upToDate = latestVersion.equals(OdooCli.VERSION);
+
+            System.out.println("Version actuelle : " + OdooCli.VERSION);
             System.out.println("Dernière version disponible : " + tag);
+            System.out.println(upToDate
+                    ? "Vous êtes déjà sur la dernière version."
+                    : "Une mise à jour est disponible (" + OdooCli.VERSION + " → " + latestVersion + ").");
 
             if (check) {
                 return 0;
             }
 
+            if (upToDate) {
+                return 0;
+            }
+
             Path currentBinary = currentBinaryPath();
-            String version = tag.startsWith("v") ? tag.substring(1) : tag;
-            String asset = "odoo-cli-" + version + "-linux-x86_64";
+            String asset = "odoo-cli-" + latestVersion + "-linux-x86_64";
             URI url = URI.create("https://github.com/" + REPO + "/releases/download/" + tag + "/" + asset);
 
             System.out.println("Téléchargement de " + asset + "...");

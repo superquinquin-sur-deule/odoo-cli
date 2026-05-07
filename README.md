@@ -18,8 +18,8 @@ Assurez-vous que `~/.local/bin` est dans votre `PATH` (le script vous le rappell
 Une fois installé, le binaire peut se mettre à jour lui-même :
 
 ```bash
-odoo-cli update            # télécharge et remplace le binaire courant
-odoo-cli update --check    # affiche la dernière version sans installer
+odoo-cli update            # télécharge et remplace le binaire courant (ne fait rien si déjà à jour)
+odoo-cli update --check    # affiche la version actuelle, la dernière disponible, et indique si une mise à jour est nécessaire
 ```
 
 La commande `update` n'est disponible que sur le binaire natif (le remplacement in-place du binaire `java` n'a pas de sens en mode JVM).
