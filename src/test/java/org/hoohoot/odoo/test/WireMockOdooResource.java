@@ -80,7 +80,18 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
 
         server.stubFor(post("/jsonrpc")
                 .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.template")))
+                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
                 .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + TEMPLATES + "}")));
+
+        server.stubFor(post("/jsonrpc")
+                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("create.shifts.wizard")))
+                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("create")))
+                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":99}")));
+
+        server.stubFor(post("/jsonrpc")
+                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("create.shifts.wizard")))
+                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("create_shifts")))
+                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
 
         server.stubFor(post("/jsonrpc")
                 .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))

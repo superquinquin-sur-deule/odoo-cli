@@ -136,6 +136,22 @@ odoo-cli creneaux list --no-active-only
 odoo-cli creneaux list --under-min
 ```
 
+#### `creneaux create-services`
+
+Crée les services (`shift.shift`) à partir des `shift.template` entre deux dates, en appelant
+`create_shifts_from_template(after, before)` côté Odoo (équivalent du wizard `create.shifts.wizard`).
+
+| Option              | Description                              |
+|---------------------|------------------------------------------|
+| `--begin-date DATE` | Date de début (jj/MM/aaaa) — **requise** |
+| `--end-date DATE`   | Date de fin (jj/MM/aaaa) — **requise**   |
+
+Exemple :
+
+```bash
+odoo-cli creneaux create-services --begin-date 06/04/2026 --end-date 20/07/2026
+```
+
 ## Tests
 
 `mvn test` lance la suite. Les tests utilisent `@QuarkusMainTest` et un `WireMockOdooResource` qui simule l'endpoint

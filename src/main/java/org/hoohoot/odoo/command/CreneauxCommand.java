@@ -1,5 +1,6 @@
 package org.hoohoot.odoo.command;
 
+import org.hoohoot.odoo.command.creneaux.CreateServicesCommand;
 import org.hoohoot.odoo.command.creneaux.ListCommand;
 import picocli.CommandLine.Command;
 
@@ -8,7 +9,8 @@ import picocli.CommandLine.Command;
         description = "Gérer les créneaux (shift templates)",
         mixinStandardHelpOptions = true,
         subcommands = {
-                ListCommand.class
+                ListCommand.class,
+                CreateServicesCommand.class
         }
 )
 public class CreneauxCommand {
