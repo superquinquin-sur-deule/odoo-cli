@@ -152,6 +152,22 @@ Exemple :
 odoo-cli creneaux create-services --begin-date 06/04/2026 --end-date 20/07/2026
 ```
 
+#### `creneaux confirm-services`
+
+Confirme les services (`shift.shift`) en état `draft` dont la date de début est comprise entre les deux dates,
+en appelant `button_confirm` côté Odoo.
+
+| Option              | Description                              |
+|---------------------|------------------------------------------|
+| `--begin-date DATE` | Date de début (jj/MM/aaaa) — **requise** |
+| `--end-date DATE`   | Date de fin (jj/MM/aaaa) — **requise**   |
+
+Exemple :
+
+```bash
+odoo-cli creneaux confirm-services --begin-date 20/04/2026 --end-date 20/07/2026
+```
+
 ## Tests
 
 `mvn test` lance la suite. Les tests utilisent `@QuarkusMainTest` et un `WireMockOdooResource` qui simule l'endpoint

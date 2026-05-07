@@ -45,6 +45,13 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
             ]
             """;
 
+    private static final String DRAFT_SHIFTS = """
+            [
+              {"id":101,"name":"Mon AM 06/04","state":"draft","date_begin":"2026-04-20 09:00:00"},
+              {"id":102,"name":"Mon PM 06/04","state":"draft","date_begin":"2026-04-20 13:00:00"}
+            ]
+            """;
+
     private static final String PRODUCT_POMMES = """
             [{"id":42,"name":"Pommes","default_code":"OLD"}]
             """;
@@ -91,6 +98,16 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
         server.stubFor(post("/jsonrpc")
                 .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("create.shifts.wizard")))
                 .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("create_shifts")))
+                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
+
+        server.stubFor(post("/jsonrpc")
+                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.shift")))
+                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + DRAFT_SHIFTS + "}")));
+
+        server.stubFor(post("/jsonrpc")
+                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.shift")))
+                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("button_confirm")))
                 .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
 
         server.stubFor(post("/jsonrpc")
