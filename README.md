@@ -50,9 +50,10 @@ Le cli : `odoo-cli <commande> ...`
 
 Met à jour en masse les références internes (`default_code`) des produits depuis un fichier CSV.
 
-| Option         | Description                                                            |
-|----------------|------------------------------------------------------------------------|
-| `--csv FILE`   | Fichier CSV à 2 colonnes avec en-tête `Name,InternalReference` (requis) |
+| Option         | Description                                                                                                                                                |
+|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--csv FILE`   | Fichier CSV à 2 colonnes avec en-tête `Name,InternalReference` (requis)                                                                                    |
+| `--dry-run`    | Simule l'exécution sans écrire dans Odoo : affiche `[dry-run] <name> : <default_code actuel> -> <cible>` pour chaque produit qui aurait été mis à jour. |
 
 Pour chaque ligne, la commande recherche un `product.product` dont `name` correspond exactement, puis écrit
 `default_code = InternalReference`. Les produits introuvables ou ambigus (plusieurs correspondances) sont
@@ -71,6 +72,7 @@ Exemple :
 
 ```bash
 odoo-cli articles update-internal-references --csv produits.csv
+odoo-cli articles update-internal-references --csv produits.csv --dry-run
 ```
 
 ### `cooperators` — gérer les coopérateurs

@@ -30,6 +30,12 @@ public class UpdateInternalReferencesCommand implements Callable<Integer> {
     )
     Path csv;
 
+    @Option(
+            names = "--dry-run",
+            description = "Simule l'exécution sans écrire dans Odoo"
+    )
+    boolean dryRun;
+
     @Inject
     OdooClient odoo;
 
@@ -44,8 +50,8 @@ public class UpdateInternalReferencesCommand implements Callable<Integer> {
         }
 
         int updated = 0;
-        int notFound = 0;
-        int ambiguous = 0;
+        List<String[]> notFoundRows = new ArrayList<>();
+        List<String[]> ambiguousRows = new ArrayList<>();
 
         for (String[] row : rows) {
             String name = row[0];
@@ -58,30 +64,57 @@ public class UpdateInternalReferencesCommand implements Callable<Integer> {
             );
 
             if (products == null || !products.isArray() || products.isEmpty()) {
-                System.err.println("Non trouvé : " + name);
-                notFound++;
+                System.err.println("Non trouvé : " + name + " (cible: " + ref + ")");
+                notFoundRows.add(row);
                 continue;
             }
             if (products.size() > 1) {
-                System.err.println("Ambigu (" + products.size() + " correspondances) : " + name);
-                ambiguous++;
+                System.err.println("Ambigu (" + products.size() + " correspondances) : " + name + " (cible: " + ref + ")");
+                ambiguousRows.add(row);
                 continue;
             }
 
             int id = products.get(0).get("id").asInt();
-            odoo.executeKw(
-                    "product.product",
-                    "write",
-                    List.of(List.of(id), Map.of("default_code", ref))
-            );
-            System.out.println(name + " -> " + ref);
+            JsonNode currentCodeNode = products.get(0).get("default_code");
+            String currentCode = currentCodeNode == null || currentCodeNode.isNull() || currentCodeNode.isBoolean()
+                    ? ""
+                    : currentCodeNode.asText();
+            if (dryRun) {
+                System.out.println("[dry-run] " + name + " : " + currentCode + " -> " + ref);
+            } else {
+                odoo.executeKw(
+                        "product.product",
+                        "write",
+                        List.of(List.of(id), Map.of("default_code", ref))
+                );
+                System.out.println(name + " -> " + ref);
+            }
             updated++;
         }
 
-        System.err.printf(
-                "%d mise(s) à jour, %d non trouvée(s), %d ambigu(s)%n",
-                updated, notFound, ambiguous
-        );
+        if (!notFoundRows.isEmpty() || !ambiguousRows.isEmpty()) {
+            System.err.println();
+            System.err.println("=== Lignes non mises à jour ===");
+            for (String[] row : notFoundRows) {
+                System.err.println("  [non trouvé] " + row[0] + "," + row[1]);
+            }
+            for (String[] row : ambiguousRows) {
+                System.err.println("  [ambigu]     " + row[0] + "," + row[1]);
+            }
+        }
+
+        if (dryRun) {
+            System.err.println("Mode dry-run : aucune modification effectuée");
+            System.err.printf(
+                    "%d mise(s) à jour simulée(s), %d non trouvée(s), %d ambigu(s)%n",
+                    updated, notFoundRows.size(), ambiguousRows.size()
+            );
+        } else {
+            System.err.printf(
+                    "%d mise(s) à jour, %d non trouvée(s), %d ambigu(s)%n",
+                    updated, notFoundRows.size(), ambiguousRows.size()
+            );
+        }
         return 0;
     }
 
