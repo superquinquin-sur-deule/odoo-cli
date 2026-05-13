@@ -56,12 +56,23 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
             ]
             """;
 
-    private static final String PRODUCT_POMMES_JSON = """
-            [{"id":42,"name":"Pommes","default_code":"OLD"}]
+    private static final String IR_MODEL_DATA_JSON = """
+            [
+              {"id":1,"module":"__export__","name":"product_template_3802","model":"product.template","res_id":18099},
+              {"id":2,"module":"__export__","name":"product_template_34039_7d5bebe8","model":"product.template","res_id":18100},
+              {"id":3,"module":"__export__","name":"product_category_146","model":"product.category","res_id":201}
+            ]
             """;
 
-    private static final String PRODUCT_BANANES_JSON = """
-            [{"id":43,"name":"Bananes, lot","default_code":false},{"id":44,"name":"Bananes, lot","default_code":"X"}]
+    private static final String BARCODE_RULE_JSON = """
+            [{"id":118,"name":"Price Look Up Codes (PLU Codes)"}]
+            """;
+
+    private static final String PRODUCT_TEMPLATE_READ_JSON = """
+            [
+              {"id":18099,"name":"Ail sec BIO","default_code":"OLD","barcode_base":0,"barcode_rule_id":false,"categ_id":[200,"Ancienne"]},
+              {"id":18100,"name":"Aillet botte BIO","default_code":false,"barcode_base":0,"barcode_rule_id":false,"categ_id":[200,"Ancienne"]}
+            ]
             """;
 
     public enum Stub {
@@ -131,41 +142,38 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
                         .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
             }
         },
-        PRODUCT_POMMES {
+        IR_MODEL_DATA_LOOKUP {
             @Override
             void register(WireMockServer s) {
                 s.stubFor(post("/jsonrpc")
-                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("ir.model.data")))
                         .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
-                        .withRequestBody(matchingJsonPath("$.params.args[5][0][0][2]", equalTo("Pommes")))
-                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PRODUCT_POMMES_JSON + "}")));
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + IR_MODEL_DATA_JSON + "}")));
             }
         },
-        PRODUCT_BANANES {
+        BARCODE_RULE_LOOKUP {
             @Override
             void register(WireMockServer s) {
                 s.stubFor(post("/jsonrpc")
-                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("barcode.rule")))
                         .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
-                        .withRequestBody(matchingJsonPath("$.params.args[5][0][0][2]", equalTo("Bananes, lot")))
-                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PRODUCT_BANANES_JSON + "}")));
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + BARCODE_RULE_JSON + "}")));
             }
         },
-        PRODUCT_INCONNU {
+        PRODUCT_TEMPLATE_READ {
             @Override
             void register(WireMockServer s) {
                 s.stubFor(post("/jsonrpc")
-                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.template")))
                         .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
-                        .withRequestBody(matchingJsonPath("$.params.args[5][0][0][2]", equalTo("Inconnu")))
-                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":[]}")));
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PRODUCT_TEMPLATE_READ_JSON + "}")));
             }
         },
-        PRODUCT_WRITE {
+        PRODUCT_TEMPLATE_WRITE {
             @Override
             void register(WireMockServer s) {
                 s.stubFor(post("/jsonrpc")
-                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.template")))
                         .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("write")))
                         .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
             }

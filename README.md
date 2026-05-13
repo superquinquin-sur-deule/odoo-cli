@@ -44,28 +44,39 @@ Le cli : `odoo-cli <commande> ...`
 
 ## Commandes
 
-### `articles` — gérer les articles (`product.product`)
+### `articles` — gérer les articles (`product.template`)
 
 #### `articles update-internal-references`
 
-Met à jour en masse les références internes (`default_code`) des produits depuis un fichier CSV.
+Met à jour en masse des champs de `product.template` (référence interne, catégorie, règle de code-barre, base)
+depuis un fichier CSV. Les produits sont identifiés par leur External ID (`ir.model.data`) ; chaque colonne
+optionnelle laissée vide est ignorée pour la ligne concernée.
 
-| Option         | Description                                                                                                                                                |
-|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--csv FILE`   | Fichier CSV à 2 colonnes avec en-tête `Name,InternalReference` (requis)                                                                                    |
-| `--dry-run`    | Simule l'exécution sans écrire dans Odoo : affiche `[dry-run] <name> : <default_code actuel> -> <cible>` pour chaque produit qui aurait été mis à jour. |
+| Option         | Description                                                                                                |
+|----------------|------------------------------------------------------------------------------------------------------------|
+| `--csv FILE`   | Fichier CSV à 6 colonnes avec en-tête `ExternalId,Name,Category,InternalReference,BarcodeRule,BarcodeBase` |
+| `--dry-run`    | Simule l'exécution sans écrire dans Odoo                                                                   |
 
-Pour chaque ligne, la commande recherche un `product.product` dont `name` correspond exactement, puis écrit
-`default_code = InternalReference`. Les produits introuvables ou ambigus (plusieurs correspondances) sont
-listés sur stderr et ignorés. Le séparateur attendu est la virgule ; les valeurs contenant une virgule peuvent
-être entourées de doubles guillemets.
+Colonnes :
+
+- `ExternalId` — External ID (`module.name`) du `product.template` à mettre à jour ; requis.
+- `Name` — utilisé uniquement à des fins d'affichage dans les logs.
+- `Category` — External ID d'une `product.category` ; renseigne `categ_id` quand fourni.
+- `InternalReference` — valeur écrite dans `default_code` quand fournie.
+- `BarcodeRule` — nom exact d'une `barcode.rule` ; renseigne `barcode_rule_id` quand fourni.
+- `BarcodeBase` — entier écrit dans `barcode_base` quand fourni.
+
+Les External IDs (produits et catégories) sont résolus en batch via `ir.model.data` ; les noms de règles de
+code-barre sont résolus en batch via `barcode.rule`. Les lignes dont l'External ID est introuvable sont listées
+sur stderr et ignorées. Le séparateur attendu est la virgule ; les valeurs contenant une virgule peuvent être
+entourées de doubles guillemets.
 
 Exemple de CSV :
 
 ```csv
-Name,InternalReference
-Pommes Golden,FR-POM-001
-"Bananes, lot 1kg",FR-BAN-002
+ExternalId,Name,Category,InternalReference,BarcodeRule,BarcodeBase
+__export__.product_template_3802,Ail sec BIO,__export__.product_category_146,500,Price Look Up Codes (PLU Codes),500
+__export__.product_template_34039_7d5bebe8,Aillet botte BIO,__export__.product_category_146,,,
 ```
 
 Exemple :
