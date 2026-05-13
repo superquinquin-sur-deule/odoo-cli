@@ -5,6 +5,8 @@ import io.quarkus.test.junit.main.Launch;
 import io.quarkus.test.junit.main.LaunchResult;
 import io.quarkus.test.junit.main.QuarkusMainTest;
 import org.hoohoot.odoo.test.WireMockOdooResource;
+import org.hoohoot.odoo.test.WireMockOdooResource.Stub;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -12,6 +14,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 @QuarkusMainTest
 @QuarkusTestResource(WireMockOdooResource.class)
 class CreneauxListTest {
+
+    @BeforeEach
+    void setupStubs() {
+        WireMockOdooResource.expect(Stub.SHIFT_TEMPLATES);
+    }
 
     @Test
     @Launch({"creneaux", "list", "--output", "csv"})

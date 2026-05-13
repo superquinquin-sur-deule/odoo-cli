@@ -4,7 +4,9 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
@@ -12,6 +14,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 
 public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager {
+
+    private static final String STUBS_PROPERTY = "wiremock.test.stubs";
 
     private static final String PARTNERS = """
             [
@@ -52,13 +56,132 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
             ]
             """;
 
-    private static final String PRODUCT_POMMES = """
+    private static final String PRODUCT_POMMES_JSON = """
             [{"id":42,"name":"Pommes","default_code":"OLD"}]
             """;
 
-    private static final String PRODUCT_BANANES = """
+    private static final String PRODUCT_BANANES_JSON = """
             [{"id":43,"name":"Bananes, lot","default_code":false},{"id":44,"name":"Bananes, lot","default_code":"X"}]
             """;
+
+    public enum Stub {
+        PARTNERS {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][0][0]", equalTo("is_member")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + WireMockOdooResource.PARTNERS + "}")));
+            }
+        },
+        BINOMES {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][0][0]", equalTo("parent_id")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + WireMockOdooResource.BINOMES + "}")));
+            }
+        },
+        INVOICES {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("account.invoice")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + WireMockOdooResource.INVOICES + "}")));
+            }
+        },
+        SHIFT_TEMPLATES {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.template")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + TEMPLATES + "}")));
+            }
+        },
+        CREATE_SHIFTS_WIZARD {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("create.shifts.wizard")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("create")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":99}")));
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("create.shifts.wizard")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("create_shifts")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
+            }
+        },
+        DRAFT_SHIFTS {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.shift")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + WireMockOdooResource.DRAFT_SHIFTS + "}")));
+            }
+        },
+        BUTTON_CONFIRM {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.shift")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("button_confirm")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
+            }
+        },
+        PRODUCT_POMMES {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][0][2]", equalTo("Pommes")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PRODUCT_POMMES_JSON + "}")));
+            }
+        },
+        PRODUCT_BANANES {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][0][2]", equalTo("Bananes, lot")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PRODUCT_BANANES_JSON + "}")));
+            }
+        },
+        PRODUCT_INCONNU {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][0][2]", equalTo("Inconnu")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":[]}")));
+            }
+        },
+        PRODUCT_WRITE {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("write")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
+            }
+        };
+
+        abstract void register(WireMockServer s);
+    }
+
+    public static void expect(Stub... stubs) {
+        if (stubs.length == 0) {
+            System.clearProperty(STUBS_PROPERTY);
+            return;
+        }
+        System.setProperty(STUBS_PROPERTY,
+                Arrays.stream(stubs).map(Enum::name).collect(Collectors.joining(",")));
+    }
 
     private WireMockServer server;
 
@@ -71,67 +194,13 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
                 .withRequestBody(matchingJsonPath("$.params.method", equalTo("login")))
                 .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":1}")));
 
-        server.stubFor(post("/jsonrpc")
-                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
-                .withRequestBody(matchingJsonPath("$.params.args[5][0][0][0]", equalTo("is_member")))
-                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PARTNERS + "}")));
-
-        server.stubFor(post("/jsonrpc")
-                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
-                .withRequestBody(matchingJsonPath("$.params.args[5][0][0][0]", equalTo("parent_id")))
-                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + BINOMES + "}")));
-
-        server.stubFor(post("/jsonrpc")
-                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("account.invoice")))
-                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + INVOICES + "}")));
-
-        server.stubFor(post("/jsonrpc")
-                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.template")))
-                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
-                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + TEMPLATES + "}")));
-
-        server.stubFor(post("/jsonrpc")
-                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("create.shifts.wizard")))
-                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("create")))
-                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":99}")));
-
-        server.stubFor(post("/jsonrpc")
-                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("create.shifts.wizard")))
-                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("create_shifts")))
-                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
-
-        server.stubFor(post("/jsonrpc")
-                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.shift")))
-                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
-                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + DRAFT_SHIFTS + "}")));
-
-        server.stubFor(post("/jsonrpc")
-                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.shift")))
-                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("button_confirm")))
-                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
-
-        server.stubFor(post("/jsonrpc")
-                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
-                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
-                .withRequestBody(matchingJsonPath("$.params.args[5][0][0][2]", equalTo("Pommes")))
-                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PRODUCT_POMMES + "}")));
-
-        server.stubFor(post("/jsonrpc")
-                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
-                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
-                .withRequestBody(matchingJsonPath("$.params.args[5][0][0][2]", equalTo("Bananes, lot")))
-                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PRODUCT_BANANES + "}")));
-
-        server.stubFor(post("/jsonrpc")
-                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
-                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
-                .withRequestBody(matchingJsonPath("$.params.args[5][0][0][2]", equalTo("Inconnu")))
-                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":[]}")));
-
-        server.stubFor(post("/jsonrpc")
-                .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
-                .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("write")))
-                .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
+        String stubsCsv = System.getProperty(STUBS_PROPERTY, "");
+        for (String key : stubsCsv.split(",")) {
+            String trimmed = key.trim();
+            if (!trimmed.isEmpty()) {
+                Stub.valueOf(trimmed).register(server);
+            }
+        }
 
         return Map.of("odoo.url", server.baseUrl());
     }
@@ -140,6 +209,7 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
     public void stop() {
         if (server != null) {
             server.stop();
+            server = null;
         }
     }
 }

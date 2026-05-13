@@ -5,6 +5,7 @@ import io.quarkus.test.junit.main.LaunchResult;
 import io.quarkus.test.junit.main.QuarkusMainLauncher;
 import io.quarkus.test.junit.main.QuarkusMainTest;
 import org.hoohoot.odoo.test.WireMockOdooResource;
+import org.hoohoot.odoo.test.WireMockOdooResource.Stub;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -19,6 +20,8 @@ class ArticlesUpdateInternalReferencesTest {
 
     @Test
     void updatesFoundProduct(QuarkusMainLauncher launcher, @TempDir Path tmp) throws Exception {
+        WireMockOdooResource.expect(Stub.PRODUCT_POMMES, Stub.PRODUCT_WRITE);
+
         Path csv = tmp.resolve("products.csv");
         Files.writeString(csv, "Name,InternalReference\nPommes,REF-001\n");
 
@@ -34,6 +37,8 @@ class ArticlesUpdateInternalReferencesTest {
 
     @Test
     void reportsMissingAndAmbiguous(QuarkusMainLauncher launcher, @TempDir Path tmp) throws Exception {
+        WireMockOdooResource.expect(Stub.PRODUCT_POMMES, Stub.PRODUCT_BANANES, Stub.PRODUCT_INCONNU, Stub.PRODUCT_WRITE);
+
         Path csv = tmp.resolve("products.csv");
         Files.writeString(csv, """
                 Name,InternalReference
@@ -60,6 +65,8 @@ class ArticlesUpdateInternalReferencesTest {
 
     @Test
     void dryRunDoesNotWriteAndReportsSimulation(QuarkusMainLauncher launcher, @TempDir Path tmp) throws Exception {
+        WireMockOdooResource.expect(Stub.PRODUCT_POMMES, Stub.PRODUCT_BANANES, Stub.PRODUCT_INCONNU);
+
         Path csv = tmp.resolve("products.csv");
         Files.writeString(csv, """
                 Name,InternalReference
@@ -84,6 +91,8 @@ class ArticlesUpdateInternalReferencesTest {
 
     @Test
     void failsWhenCsvMissing(QuarkusMainLauncher launcher, @TempDir Path tmp) {
+        WireMockOdooResource.expect();
+
         Path csv = tmp.resolve("missing.csv");
 
         LaunchResult result = launcher.launch(
