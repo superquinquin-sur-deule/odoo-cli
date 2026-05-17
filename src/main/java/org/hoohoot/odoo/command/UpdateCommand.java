@@ -1,6 +1,7 @@
 package org.hoohoot.odoo.command;
 
-import org.hoohoot.odoo.OdooCli;
+import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -26,6 +27,10 @@ public class UpdateCommand implements Callable<Integer> {
     @Option(names = "--check", description = "Affiche la dernière version disponible sans installer")
     boolean check;
 
+    @Inject
+    @ConfigProperty(name = "quarkus.application.version", defaultValue = "dev")
+    String currentVersion;
+
     @Override
     public Integer call() {
         try {
@@ -35,13 +40,13 @@ public class UpdateCommand implements Callable<Integer> {
                 return 2;
             }
             String latestVersion = tag.startsWith("v") ? tag.substring(1) : tag;
-            boolean upToDate = latestVersion.equals(OdooCli.VERSION);
+            boolean upToDate = latestVersion.equals(currentVersion);
 
-            System.out.println("Version actuelle : " + OdooCli.VERSION);
+            System.out.println("Version actuelle : " + currentVersion);
             System.out.println("Dernière version disponible : " + tag);
             System.out.println(upToDate
                     ? "Vous êtes déjà sur la dernière version."
-                    : "Une mise à jour est disponible (" + OdooCli.VERSION + " → " + latestVersion + ").");
+                    : "Une mise à jour est disponible (" + currentVersion + " → " + latestVersion + ").");
 
             if (check) {
                 return 0;
