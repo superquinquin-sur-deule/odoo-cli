@@ -1,5 +1,6 @@
 package org.hoohoot.odoo.command;
 
+import org.hoohoot.odoo.command.creneaux.AdjustFtopSeatsCommand;
 import org.hoohoot.odoo.command.creneaux.ConfirmServicesCommand;
 import org.hoohoot.odoo.command.creneaux.CreateServicesCommand;
 import org.hoohoot.odoo.command.creneaux.ListCommand;
@@ -12,7 +13,8 @@ import picocli.CommandLine.Command;
         subcommands = {
                 ListCommand.class,
                 CreateServicesCommand.class,
-                ConfirmServicesCommand.class
+                ConfirmServicesCommand.class,
+                AdjustFtopSeatsCommand.class
         }
 )
 public class CreneauxCommand {

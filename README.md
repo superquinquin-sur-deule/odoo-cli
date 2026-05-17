@@ -181,6 +181,33 @@ Exemple :
 odoo-cli creneaux confirm-services --begin-date 20/04/2026 --end-date 20/07/2026
 ```
 
+#### `creneaux adjust-ftop-seats`
+
+Aligne le nombre de places volants (FTOP) de chaque service confirmé entre deux dates, en écrivant sur le ticket
+FTOP `seats_max = (seats_max ABCD du template) - (seats_reserved ABCD du service) + 1`. Permet de récupérer
+automatiquement les places ABCD non pourvues pour les ouvrir aux volants, plus une place tampon pour rester
+attractif (sinon un créneau plein côté ABCD afficherait `seats_max = 0` côté FTOP).
+
+Par défaut, seuls les services en `state='confirm'` sont traités. Avec `--include-draft`, les services en
+`state='draft'` sont inclus aussi (utile pour la semaine suivante : le cron upstream `Shifts Confirmation` ne
+confirme que les services à J+5 max). La valeur calculée est clampée à 0 (jamais négative). Les services dont
+le ticket standard, le ticket FTOP ou le template ABCD est introuvable sont listés sur stderr et ignorés.
+
+| Option              | Description                                                                  |
+|---------------------|------------------------------------------------------------------------------|
+| `--begin-date DATE` | Date de début (jj/MM/aaaa) — **requise**                                     |
+| `--end-date DATE`   | Date de fin (jj/MM/aaaa) — **requise**                                       |
+| `--dry-run`         | Simule sans écrire dans Odoo                                                 |
+| `--include-draft`   | Traite aussi les services en brouillon (state=draft), en plus des confirmés  |
+
+Exemples :
+
+```bash
+odoo-cli creneaux adjust-ftop-seats --begin-date 20/04/2026 --end-date 20/07/2026
+odoo-cli creneaux adjust-ftop-seats --begin-date 20/04/2026 --end-date 20/07/2026 --dry-run
+odoo-cli creneaux adjust-ftop-seats --begin-date 24/05/2026 --end-date 31/05/2026 --include-draft
+```
+
 ## Tests
 
 `mvn test` lance la suite. Les tests utilisent `@QuarkusMainTest` et un `WireMockOdooResource` qui simule l'endpoint
