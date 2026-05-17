@@ -5,6 +5,29 @@ REPO="superquinquin-sur-deule/odoo-cli"
 INSTALL_DIR="${HOME}/.local/bin"
 BINARY_NAME="odoo-cli"
 
+OS_NAME=$(uname -s)
+ARCH_NAME=$(uname -m)
+
+case "${OS_NAME}" in
+  Linux)
+    case "${ARCH_NAME}" in
+      x86_64|amd64) PLATFORM="linux-x86_64" ;;
+      *) echo "Error: unsupported Linux architecture: ${ARCH_NAME}" >&2; exit 1 ;;
+    esac
+    ;;
+  Darwin)
+    case "${ARCH_NAME}" in
+      x86_64) PLATFORM="macos-x86_64" ;;
+      arm64|aarch64) PLATFORM="macos-aarch64" ;;
+      *) echo "Error: unsupported macOS architecture: ${ARCH_NAME}" >&2; exit 1 ;;
+    esac
+    ;;
+  *)
+    echo "Error: unsupported OS: ${OS_NAME}" >&2
+    exit 1
+    ;;
+esac
+
 LATEST_TAG=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/${REPO}/releases/latest" | sed 's|.*/||')
 
 if [ -z "${LATEST_TAG}" ] || [ "${LATEST_TAG}" = "releases" ]; then
@@ -13,7 +36,7 @@ if [ -z "${LATEST_TAG}" ] || [ "${LATEST_TAG}" = "releases" ]; then
 fi
 
 VERSION="${LATEST_TAG#v}"
-ASSET="odoo-cli-${VERSION}-linux-x86_64"
+ASSET="odoo-cli-${VERSION}-${PLATFORM}"
 URL="https://github.com/${REPO}/releases/download/${LATEST_TAG}/${ASSET}"
 
 mkdir -p "${INSTALL_DIR}"

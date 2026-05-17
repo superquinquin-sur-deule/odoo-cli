@@ -22,7 +22,7 @@ CLI Quarkus 3 (Java 21) qui interroge une instance Odoo v12 + Module FoodCoop vi
 
 ## Installation
 
-Installation rapide de la dernière version (binaire natif Linux x86_64) dans `~/.local/bin` :
+Installation rapide de la dernière version dans `~/.local/bin` (le script détecte l'OS/arch — Linux x86_64, macOS Intel, macOS Apple Silicon) :
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/superquinquin-sur-deule/odoo-cli/main/install.sh | sh

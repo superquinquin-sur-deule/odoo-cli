@@ -57,7 +57,7 @@ public class UpdateCommand implements Callable<Integer> {
             }
 
             Path currentBinary = currentBinaryPath();
-            String asset = "odoo-cli-" + latestVersion + "-linux-x86_64";
+            String asset = "odoo-cli-" + latestVersion + "-" + detectPlatform();
             URI url = URI.create("https://github.com/" + REPO + "/releases/download/" + tag + "/" + asset);
 
             System.out.println("Téléchargement de " + asset + "...");
@@ -111,14 +111,43 @@ public class UpdateCommand implements Callable<Integer> {
 
     private static Path currentBinaryPath() throws IOException {
         Path procSelfExe = Path.of("/proc/self/exe");
-        if (!Files.exists(procSelfExe)) {
-            throw new IOException("Cette commande nécessite Linux et le binaire natif");
+        Path resolved;
+        if (Files.exists(procSelfExe)) {
+            resolved = procSelfExe.toRealPath();
+        } else {
+            String command = ProcessHandle.current().info().command()
+                    .orElseThrow(() -> new IOException("Impossible de déterminer le chemin du binaire courant"));
+            resolved = Path.of(command).toRealPath();
         }
-        Path resolved = procSelfExe.toRealPath();
         String name = resolved.getFileName().toString();
         if (name.equals("java") || resolved.toString().contains("/jdk") || resolved.toString().contains("/jre")) {
             throw new IOException("La commande update n'est utilisable qu'avec le binaire natif (détecté : " + resolved + ")");
         }
         return resolved;
+    }
+
+    private static String detectPlatform() throws IOException {
+        String os = System.getProperty("os.name", "").toLowerCase();
+        String arch = System.getProperty("os.arch", "").toLowerCase();
+
+        String osTag;
+        if (os.contains("linux")) {
+            osTag = "linux";
+        } else if (os.contains("mac") || os.contains("darwin")) {
+            osTag = "macos";
+        } else {
+            throw new IOException("OS non supporté pour la mise à jour : " + os);
+        }
+
+        String archTag;
+        if (arch.equals("amd64") || arch.equals("x86_64")) {
+            archTag = "x86_64";
+        } else if (arch.equals("aarch64") || arch.equals("arm64")) {
+            archTag = "aarch64";
+        } else {
+            throw new IOException("Architecture non supportée pour la mise à jour : " + arch);
+        }
+
+        return osTag + "-" + archTag;
     }
 }

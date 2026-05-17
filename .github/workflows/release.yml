@@ -13,8 +13,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  tag:
     runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.tag.outputs.new_version }}
+      new_tag: ${{ steps.tag.outputs.new_tag }}
+      changelog: ${{ steps.tag.outputs.changelog }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,8 +33,25 @@ jobs:
           default_bump: false
           release_branches: main
 
+  build:
+    needs: tag
+    if: needs.tag.outputs.new_version != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset_suffix: linux-x86_64
+          - os: macos-13
+            asset_suffix: macos-x86_64
+          - os: macos-14
+            asset_suffix: macos-aarch64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Set up Mandrel (GraalVM for Quarkus) + Maven cache
-        if: steps.tag.outputs.new_version != ''
         uses: graalvm/setup-graalvm@v1
         with:
           distribution: 'mandrel'
@@ -40,26 +61,39 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Align pom.xml version with release version
-        if: steps.tag.outputs.new_version != ''
-        run: mvn -B versions:set -DnewVersion=${{ steps.tag.outputs.new_version }} -DgenerateBackupPoms=false
+        run: mvn -B versions:set -DnewVersion=${{ needs.tag.outputs.new_version }} -DgenerateBackupPoms=false
 
       - name: Run JVM tests
-        if: steps.tag.outputs.new_version != ''
         run: mvn -B test
 
       - name: Build native binary
-        if: steps.tag.outputs.new_version != ''
         run: mvn -B package -Dnative -DskipTests
 
       - name: Rename binary asset
-        if: steps.tag.outputs.new_version != ''
-        run: mv target/odoo-cli-${{ steps.tag.outputs.new_version }}-runner odoo-cli-${{ steps.tag.outputs.new_version }}-linux-x86_64
+        run: mv target/odoo-cli-${{ needs.tag.outputs.new_version }}-runner odoo-cli-${{ needs.tag.outputs.new_version }}-${{ matrix.asset_suffix }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: odoo-cli-${{ matrix.asset_suffix }}
+          path: odoo-cli-${{ needs.tag.outputs.new_version }}-${{ matrix.asset_suffix }}
+          if-no-files-found: error
+
+  release:
+    needs: [tag, build]
+    if: needs.tag.outputs.new_version != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
 
       - name: Create GitHub Release
-        if: steps.tag.outputs.new_version != ''
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.new_tag }}
-          name: ${{ steps.tag.outputs.new_tag }}
-          body: ${{ steps.tag.outputs.changelog }}
-          files: odoo-cli-${{ steps.tag.outputs.new_version }}-linux-x86_64
+          tag_name: ${{ needs.tag.outputs.new_tag }}
+          name: ${{ needs.tag.outputs.new_tag }}
+          body: ${{ needs.tag.outputs.changelog }}
+          files: artifacts/*
