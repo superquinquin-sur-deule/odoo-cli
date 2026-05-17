@@ -42,8 +42,6 @@ jobs:
         include:
           - os: ubuntu-latest
             asset_suffix: linux-x86_64
-          - os: macos-13
-            asset_suffix: macos-x86_64
           - os: macos-14
             asset_suffix: macos-aarch64
     runs-on: ${{ matrix.os }}
@@ -60,11 +58,11 @@ jobs:
           cache: 'maven'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Align pom.xml version with release version
-        run: mvn -B versions:set -DnewVersion=${{ needs.tag.outputs.new_version }} -DgenerateBackupPoms=false
-
       - name: Run JVM tests
         run: mvn -B test
+
+      - name: Align pom.xml version with release version
+        run: mvn -B versions:set -DnewVersion=${{ needs.tag.outputs.new_version }} -DgenerateBackupPoms=false
 
       - name: Build native binary
         run: mvn -B package -Dnative -DskipTests
