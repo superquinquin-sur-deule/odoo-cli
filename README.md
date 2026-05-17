@@ -2,6 +2,24 @@
 
 CLI Quarkus 3 (Java 21) qui interroge une instance Odoo v12 + Module FoodCoop via JSON-RPC.
 
+## Sommaire
+
+- [Installation](#installation)
+  - [Mise à jour](#mise-à-jour)
+- [Configuration](#configuration)
+- [Lancement](#lancement)
+- [Commandes](#commandes)
+  - [`articles` — gérer les articles (`product.template`)](#articles--gérer-les-articles-producttemplate)
+    - [`articles update-internal-references`](#articles-update-internal-references)
+  - [`cooperators` — gérer les coopérateurs](#cooperators--gérer-les-coopérateurs)
+    - [`cooperators list`](#cooperators-list)
+  - [`creneaux` — gérer les créneaux (`shift.template`)](#creneaux--gérer-les-créneaux-shifttemplate)
+    - [`creneaux list`](#creneaux-list)
+    - [`creneaux create-services`](#creneaux-create-services)
+    - [`creneaux confirm-services`](#creneaux-confirm-services)
+    - [`creneaux adjust-ftop-seats`](#creneaux-adjust-ftop-seats)
+- [Tests](#tests)
+
 ## Installation
 
 Installation rapide de la dernière version (binaire natif Linux x86_64) dans `~/.local/bin` :
