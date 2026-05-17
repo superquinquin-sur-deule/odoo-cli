@@ -60,11 +60,11 @@ jobs:
           cache: 'maven'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Align pom.xml version with release version
-        run: mvn -B versions:set -DnewVersion=${{ needs.tag.outputs.new_version }} -DgenerateBackupPoms=false
-
       - name: Run JVM tests
         run: mvn -B test
+
+      - name: Align pom.xml version with release version
+        run: mvn -B versions:set -DnewVersion=${{ needs.tag.outputs.new_version }} -DgenerateBackupPoms=false
 
       - name: Build native binary
         run: mvn -B package -Dnative -DskipTests
