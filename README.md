@@ -16,6 +16,7 @@ CLI Quarkus 3 (Java 21) qui interroge une instance Odoo v12 + Module FoodCoop vi
     - [`barcode-rules test`](#barcode-rules-test)
   - [`cooperators` — gérer les coopérateurs](#cooperators--gérer-les-coopérateurs)
     - [`cooperators list`](#cooperators-list)
+    - [`cooperators reset-ftop-counter`](#cooperators-reset-ftop-counter)
   - [`creneaux` — gérer les créneaux (`shift.template`)](#creneaux--gérer-les-créneaux-shifttemplate)
     - [`creneaux list`](#creneaux-list)
     - [`creneaux create-services`](#creneaux-create-services)
@@ -211,6 +212,28 @@ odoo-cli cooperators list --sort-by inscription
 odoo-cli cooperators list --status up_to_date
 odoo-cli cooperators list --status alert --status suspended
 odoo-cli cooperators list --exclude-binomes
+```
+
+#### `cooperators reset-ftop-counter`
+
+Remet à 0 les compteurs FTOP des coopérateurs (`res.partner.display_ftop_points`) en marquant `ignored=true`
+sur tous les `shift.counter.event` de type `ftop` non encore ignorés, et en leur ajoutant le motif
+**« Services avant ouverture »** (`shift.counter.event.reason` id=1). Les events sont conservés (audit trail),
+seul leur impact sur le compteur est neutralisé.
+
+| Option              | Description                                                                       |
+|---------------------|-----------------------------------------------------------------------------------|
+| `--before-date DATE` | Ne traite que les events dont `create_date <= DATE 23:59:59` (jj/MM/aaaa)        |
+| `--partner-id ID`   | Filtre par id de coopérateur (répétable) ; ne traite que les events de ces partners |
+| `--dry-run`         | Simule l'exécution sans écrire dans Odoo                                          |
+
+Exemples :
+
+```bash
+odoo-cli cooperators reset-ftop-counter --dry-run
+odoo-cli cooperators reset-ftop-counter
+odoo-cli cooperators reset-ftop-counter --before-date 31/08/2026
+odoo-cli cooperators reset-ftop-counter --partner-id 1689 --partner-id 1879
 ```
 
 ### `creneaux` — gérer les créneaux (`shift.template`)

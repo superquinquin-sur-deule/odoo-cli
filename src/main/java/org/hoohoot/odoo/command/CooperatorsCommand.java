@@ -1,6 +1,7 @@
 package org.hoohoot.odoo.command;
 
 import org.hoohoot.odoo.command.cooperators.ListCommand;
+import org.hoohoot.odoo.command.cooperators.ResetFtopCounterCommand;
 import picocli.CommandLine.Command;
 
 @Command(
@@ -8,7 +9,8 @@ import picocli.CommandLine.Command;
         description = "Gérer les coopérateurs",
         mixinStandardHelpOptions = true,
         subcommands = {
-                ListCommand.class
+                ListCommand.class,
+                ResetFtopCounterCommand.class
         }
 )
 public class CooperatorsCommand {

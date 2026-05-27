@@ -124,6 +124,21 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
             ]
             """;
 
+    private static final String FTOP_COUNTER_EVENTS_JSON = """
+            [
+              {"id":67,"name":"Attended","type":"ftop","point_qty":1.0,"partner_id":[1689,"ARDOUIN PERO, Joëlle"],"shift_id":[244,"DMar. - 15:45 26/05/2026 15:45"],"ignored":false,"reason_ids":[],"create_date":"2026-05-25 16:14:15"},
+              {"id":68,"name":"Attended","type":"ftop","point_qty":1.0,"partner_id":[1816,"BELVA, Frederic"],"shift_id":[244,"DMar. - 15:45 26/05/2026 15:45"],"ignored":false,"reason_ids":[],"create_date":"2026-05-26 16:08:14"},
+              {"id":70,"name":"Présent","type":"ftop","point_qty":1.0,"partner_id":[1879,"LONGUEVAL, Bertrande"],"shift_id":[235,"DLun. - 15:45 25/05/2026 15:45"],"ignored":false,"reason_ids":[],"create_date":"2026-05-26 19:45:45"}
+            ]
+            """;
+
+    private static final String FTOP_COUNTER_EVENTS_PARTNER_FILTER_JSON = """
+            [
+              {"id":67,"name":"Attended","type":"ftop","point_qty":1.0,"partner_id":[1689,"ARDOUIN PERO, Joëlle"],"shift_id":[244,"DMar. - 15:45 26/05/2026 15:45"],"ignored":false,"reason_ids":[],"create_date":"2026-05-25 16:14:15"},
+              {"id":70,"name":"Présent","type":"ftop","point_qty":1.0,"partner_id":[1879,"LONGUEVAL, Bertrande"],"shift_id":[235,"DLun. - 15:45 25/05/2026 15:45"],"ignored":false,"reason_ids":[],"create_date":"2026-05-26 19:45:45"}
+            ]
+            """;
+
     private static final String PRODUCT_TEMPLATE_READ_JSON = """
             [
               {"id":18099,"name":"Ail sec BIO","default_code":"OLD","barcode_base":0,"barcode_rule_id":false,"categ_id":[200,"Ancienne"]},
@@ -325,6 +340,43 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
                         .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.shift")))
                         .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
                         .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + SHIFTS_FOR_ALERT_JSON + "}")));
+            }
+        },
+        FTOP_COUNTER_EVENTS_READ {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.counter.event")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + FTOP_COUNTER_EVENTS_JSON + "}")));
+            }
+        },
+        NO_COUNTER_EVENTS {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.counter.event")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + EMPTY_ARRAY + "}")));
+            }
+        },
+        SHIFT_COUNTER_EVENT_WRITE {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.counter.event")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("write")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
+            }
+        },
+        FTOP_COUNTER_EVENTS_PARTNER_FILTER {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.counter.event")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][?(@[0] == 'partner_id')][1]", equalTo("in")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + FTOP_COUNTER_EVENTS_PARTNER_FILTER_JSON + "}")));
             }
         };
 
