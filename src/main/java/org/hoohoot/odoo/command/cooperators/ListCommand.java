@@ -29,7 +29,9 @@ public class ListCommand implements Callable<Integer> {
 
     public enum GroupBy { binome }
 
-    public enum SortBy { id, nom, prenom, email, adresse, parts, capital, inscription }
+    public enum SortBy { id, nom, prenom, email, adresse, parts, capital, inscription, statut }
+
+    public enum Status { not_concerned, unsubscribed, exempted, vacation, up_to_date, alert, suspended, delay, blocked, unpayed }
 
     public enum SortDirection { asc, desc }
 
@@ -74,11 +76,24 @@ public class ListCommand implements Callable<Integer> {
     GroupBy groupBy;
 
     @Option(
+            names = "--exclude-binomes",
+            description = "N'afficher que les coopérateurs sans binôme (sans `is_associated_people` enfant)"
+    )
+    boolean excludeBinomes;
+
+    @Option(
             names = "--sort-by",
             paramLabel = "COLUMN",
             description = "Colonne de tri : ${COMPLETION-CANDIDATES}"
     )
     SortBy sortBy;
+
+    @Option(
+            names = "--status",
+            paramLabel = "STATUS",
+            description = "Filtre par statut (répétable) : ${COMPLETION-CANDIDATES}"
+    )
+    Status[] statuses;
 
     @Option(
             names = "--sort-direction",
@@ -110,6 +125,16 @@ public class ListCommand implements Callable<Integer> {
         }
 
         List<Cooperator> coops = fetchCooperators(parsedAtDate);
+        if (excludeBinomes) {
+            coops.removeIf(Cooperator::isBinome);
+        }
+        if (statuses != null && statuses.length > 0) {
+            java.util.Set<String> wanted = new java.util.HashSet<>();
+            for (Status s : statuses) {
+                wanted.add(s.name());
+            }
+            coops.removeIf(c -> !wanted.contains(c.status()));
+        }
         if (noEmail) {
             coops.removeIf(c -> !normalizeEmail(c.email()).isEmpty());
         }
@@ -157,6 +182,7 @@ public class ListCommand implements Callable<Integer> {
                         Cooperator::inscriptionDate,
                         Comparator.nullsLast(Comparator.naturalOrder())
                 );
+                case statut -> Comparator.comparing(Cooperator::status, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
             };
             return sortDirection == SortDirection.desc ? cmp.reversed() : cmp;
         }
@@ -214,7 +240,7 @@ public class ListCommand implements Callable<Integer> {
                     textOrEmpty(p, "city")
             ).replaceAll("\\s+", " ").trim();
             result.computeIfAbsent(parentId, k -> new ArrayList<>())
-                    .add(new Cooperator(id, nom, prenom, textOrEmpty(p, "email"), address, 0, 0, null));
+                    .add(new Cooperator(id, nom, prenom, textOrEmpty(p, "email"), address, 0, 0, null, "", true));
         }
         for (List<Cooperator> list : result.values()) {
             list.sort((a, b) -> {
@@ -231,7 +257,7 @@ public class ListCommand implements Callable<Integer> {
                 List.of("active", "in", List.of(true, false))
         );
         List<String> partnerFields = List.of(
-                "id", "name", "email", "street", "zip", "city", "total_partner_owned_share"
+                "id", "name", "email", "street", "zip", "city", "total_partner_owned_share", "cooperative_state", "is_associated_people"
         );
         JsonNode partners = odoo.searchRead("res.partner", partnerDomain, partnerFields);
 
@@ -310,7 +336,9 @@ public class ListCommand implements Callable<Integer> {
                     address,
                     p.path("total_partner_owned_share").asDouble(0),
                     (long) capital,
-                    firstInvoiceByPartner.get(id)
+                    firstInvoiceByPartner.get(id),
+                    textOrEmpty(p, "cooperative_state"),
+                    p.path("is_associated_people").asBoolean(false)
             ));
         }
         return result;
@@ -318,16 +346,16 @@ public class ListCommand implements Callable<Integer> {
 
     private void printCsv(List<Cooperator> coops, Map<Integer, List<Cooperator>> binomesByParent) {
         csv.print(
-                new String[]{"Id", "Nom", "Prenom", "Email", "Adresse", "Nb de parts", "Capital", "Inscription"},
+                new String[]{"Id", "Nom", "Prenom", "Email", "Adresse", "Nb de parts", "Capital", "Inscription", "Statut"},
                 toRows(coops, binomesByParent)
         );
     }
 
     private void printPretty(List<Cooperator> coops, Map<Integer, List<Cooperator>> binomesByParent) {
         pretty.print(
-                new String[]{"Id", "Nom", "Prénom", "Email", "Adresse", "Parts", "Capital", "Inscription"},
+                new String[]{"Id", "Nom", "Prénom", "Email", "Adresse", "Parts", "Capital", "Inscription", "Statut"},
                 toRows(coops, binomesByParent),
-                new boolean[]{true, false, false, false, false, true, true, false}
+                new boolean[]{true, false, false, false, false, true, true, false, false}
         );
     }
 
@@ -342,7 +370,8 @@ public class ListCommand implements Callable<Integer> {
                     c.address(),
                     formatParts(c.parts()),
                     String.valueOf(c.capital()),
-                    formatDate(c.inscriptionDate())
+                    formatDate(c.inscriptionDate()),
+                    c.status()
             });
             for (Cooperator b : binomesByParent.getOrDefault(c.id(), List.of())) {
                 rows.add(new String[]{
@@ -351,6 +380,7 @@ public class ListCommand implements Callable<Integer> {
                         b.prenom(),
                         b.email(),
                         b.address(),
+                        "",
                         "",
                         "",
                         ""

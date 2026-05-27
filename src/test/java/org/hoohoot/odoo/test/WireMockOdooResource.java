@@ -19,10 +19,10 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
 
     private static final String PARTNERS = """
             [
-              {"id":1,"name":"Doe, Alice","email":"alice@example.com","street":"1 rue","zip":"75001","city":"Paris","total_partner_owned_share":1},
-              {"id":2,"name":"Smith, Bob","email":"bob@example.com","street":false,"zip":false,"city":false,"total_partner_owned_share":1},
-              {"id":3,"name":"Jones, Carol","email":"alice@example.com","street":false,"zip":false,"city":false,"total_partner_owned_share":1},
-              {"id":4,"name":"Brown, Dave","email":false,"street":false,"zip":false,"city":false,"total_partner_owned_share":1}
+              {"id":1,"name":"Doe, Alice","email":"alice@example.com","street":"1 rue","zip":"75001","city":"Paris","total_partner_owned_share":1,"cooperative_state":"up_to_date","is_associated_people":false},
+              {"id":2,"name":"Smith, Bob","email":"bob@example.com","street":false,"zip":false,"city":false,"total_partner_owned_share":1,"cooperative_state":"alert","is_associated_people":false},
+              {"id":3,"name":"Jones, Carol","email":"alice@example.com","street":false,"zip":false,"city":false,"total_partner_owned_share":1,"cooperative_state":"unsubscribed","is_associated_people":false},
+              {"id":4,"name":"Brown, Dave","email":false,"street":false,"zip":false,"city":false,"total_partner_owned_share":1,"cooperative_state":"up_to_date","is_associated_people":true}
             ]
             """;
 
@@ -94,6 +94,15 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
             ]
             """;
 
+    private static final String SHIFTS_FOR_ALERT_JSON = """
+            [
+              {"id":401,"name":"CMar. - 13:15","state":"draft","date_begin":"2026-05-19 11:15:00","date_end":"2026-05-19 14:00:00","seats_min":4,"seats_max":4,"seats_reserved":1,"shift_template_id":[58,"CMar. - 13:15"]},
+              {"id":402,"name":"CMar. - 15:45","state":"draft","date_begin":"2026-05-19 13:45:00","date_end":"2026-05-19 16:30:00","seats_min":5,"seats_max":5,"seats_reserved":0,"shift_template_id":[59,"CMar. - 15:45"]},
+              {"id":403,"name":"CMar. - 18:15","state":"confirm","date_begin":"2026-05-19 16:15:00","date_end":"2026-05-19 19:00:00","seats_min":3,"seats_max":4,"seats_reserved":3,"shift_template_id":[60,"CMar. - 18:15"]},
+              {"id":404,"name":"Volants CMar.","state":"draft","date_begin":"2026-05-19 20:00:00","date_end":"2026-05-19 22:00:00","seats_min":0,"seats_max":4,"seats_reserved":0,"shift_template_id":[61,"Volants CMar."]}
+            ]
+            """;
+
     private static final String IR_MODEL_DATA_JSON = """
             [
               {"id":1,"module":"__export__","name":"product_template_3802","model":"product.template","res_id":18099},
@@ -104,6 +113,15 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
 
     private static final String BARCODE_RULE_JSON = """
             [{"id":118,"name":"Price Look Up Codes (PLU Codes)"}]
+            """;
+
+    private static final String BARCODE_RULES_LIST_JSON = """
+            [
+              {"id":22,"name":"Meal Voucher Payment","type":"meal_voucher_payment","encoding":"any","pattern":"...........{NNNDD}........","sequence":1,"create_date":"2026-01-23 12:10:24","transform_expr":false,"barcode_nomenclature_id":[1,"Default Nomenclature"]},
+              {"id":7,"name":"Customer Barcodes","type":"client","encoding":"any","pattern":"042","sequence":2,"create_date":"2026-01-23 10:06:10","transform_expr":false,"barcode_nomenclature_id":[1,"Default Nomenclature"]},
+              {"id":6,"name":"Cashier Barcodes","type":"cashier","encoding":"ean13","pattern":"041","sequence":3,"create_date":"2026-01-23 10:06:10","transform_expr":"value * 2","barcode_nomenclature_id":[1,"Default Nomenclature"]},
+              {"id":5,"name":"Location barcodes","type":"location","encoding":"any","pattern":"414","sequence":4,"create_date":"2026-01-22 10:05:50","transform_expr":"value / 6.55957","barcode_nomenclature_id":[1,"Default Nomenclature"]}
+            ]
             """;
 
     private static final String PRODUCT_TEMPLATE_READ_JSON = """
@@ -198,6 +216,25 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
                         .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + BARCODE_RULE_JSON + "}")));
             }
         },
+        BARCODE_RULES_LIST {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("barcode.rule")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][0][0]", equalTo("barcode_nomenclature_id")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + BARCODE_RULES_LIST_JSON + "}")));
+            }
+        },
+        BARCODE_NOMENCLATURE_DEFAULT {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("barcode.nomenclature")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":[{\"id\":1,\"name\":\"Default Nomenclature\"}]}")));
+            }
+        },
         PRODUCT_TEMPLATE_READ {
             @Override
             void register(WireMockServer s) {
@@ -279,6 +316,15 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
                         .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.ticket")))
                         .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
                         .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + DRAFT_SHIFT_TICKETS_JSON + "}")));
+            }
+        },
+        SHIFTS_FOR_ALERT {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.shift")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + SHIFTS_FOR_ALERT_JSON + "}")));
             }
         };
 

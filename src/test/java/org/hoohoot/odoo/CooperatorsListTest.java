@@ -33,6 +33,68 @@ class CooperatorsListTest {
     }
 
     @Test
+    @Launch({"cooperators", "list", "--output", "csv"})
+    void statusInOutput(LaunchResult result) {
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.getOutput())
+                .contains("Statut")
+                .contains("Doe;Alice;alice@example.com;1 rue 75001 Paris;1;100;15/01/2020;up_to_date")
+                .contains("Smith;Bob;bob@example.com;;1;50;10/06/2021;alert")
+                .contains("Jones;Carol;alice@example.com;;1;75;20/03/2019;unsubscribed")
+                .contains("Brown;Dave;;;1;25;05/11/2022;up_to_date");
+    }
+
+    @Test
+    @Launch({"cooperators", "list", "--output", "csv", "--status", "up_to_date"})
+    void filterByStatusSingle(LaunchResult result) {
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.getOutput())
+                .contains("Doe;Alice")
+                .contains("Brown;Dave")
+                .doesNotContain("Smith;Bob")
+                .doesNotContain("Jones;Carol");
+        assertThat(result.getErrorOutput()).contains("2 coopérateur");
+    }
+
+    @Test
+    @Launch({"cooperators", "list", "--output", "csv", "--status", "alert", "--status", "unsubscribed"})
+    void filterByStatusMultiple(LaunchResult result) {
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.getOutput())
+                .contains("Smith;Bob")
+                .contains("Jones;Carol")
+                .doesNotContain("Doe;Alice")
+                .doesNotContain("Brown;Dave");
+        assertThat(result.getErrorOutput()).contains("2 coopérateur");
+    }
+
+    @Test
+    @Launch({"cooperators", "list", "--output", "csv", "--exclude-binomes"})
+    void excludeBinomes(LaunchResult result) {
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.getOutput())
+                .contains("Doe;Alice")
+                .contains("Smith;Bob")
+                .contains("Jones;Carol")
+                .doesNotContain("Brown;Dave");
+        assertThat(result.getErrorOutput()).contains("3 coopérateur");
+    }
+
+    @Test
+    @Launch({"cooperators", "list", "--output", "csv", "--sort-by", "statut"})
+    void sortByStatusAsc(LaunchResult result) {
+        assertThat(result.exitCode()).isZero();
+        String output = result.getOutput();
+        int smith = output.indexOf("Smith;Bob");
+        int jones = output.indexOf("Jones;Carol");
+        int doe = output.indexOf("Doe;Alice");
+        int brown = output.indexOf("Brown;Dave");
+        assertThat(smith).isLessThan(jones);
+        assertThat(jones).isLessThan(doe);
+        assertThat(doe).isLessThan(brown);
+    }
+
+    @Test
     @Launch({"cooperators", "list", "--output", "csv", "--no-email"})
     void noEmail(LaunchResult result) {
         assertThat(result.exitCode()).isZero();

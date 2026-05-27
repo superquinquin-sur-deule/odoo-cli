@@ -11,6 +11,9 @@ CLI Quarkus 3 (Java 21) qui interroge une instance Odoo v12 + Module FoodCoop vi
 - [Commandes](#commandes)
   - [`articles` — gérer les articles (`product.template`)](#articles--gérer-les-articles-producttemplate)
     - [`articles update-internal-references`](#articles-update-internal-references)
+  - [`barcode-rules` — gérer les règles de code-barres](#barcode-rules--gérer-les-règles-de-code-barres)
+    - [`barcode-rules list`](#barcode-rules-list)
+    - [`barcode-rules test`](#barcode-rules-test)
   - [`cooperators` — gérer les coopérateurs](#cooperators--gérer-les-coopérateurs)
     - [`cooperators list`](#cooperators-list)
   - [`creneaux` — gérer les créneaux (`shift.template`)](#creneaux--gérer-les-créneaux-shifttemplate)
@@ -18,6 +21,7 @@ CLI Quarkus 3 (Java 21) qui interroge une instance Odoo v12 + Module FoodCoop vi
     - [`creneaux create-services`](#creneaux-create-services)
     - [`creneaux confirm-services`](#creneaux-confirm-services)
     - [`creneaux adjust-ftop-seats`](#creneaux-adjust-ftop-seats)
+    - [`creneaux alert`](#creneaux-alert)
 - [Tests](#tests)
 
 ## Installation
@@ -104,6 +108,63 @@ odoo-cli articles update-internal-references --csv produits.csv
 odoo-cli articles update-internal-references --csv produits.csv --dry-run
 ```
 
+### `barcode-rules` — gérer les règles de code-barres
+
+#### `barcode-rules list`
+
+Liste les règles (`barcode.rule`) attachées à la nomenclature par défaut (`barcode.nomenclature`, première trouvée).
+
+| Option                  | Description                                                                                  |
+|-------------------------|----------------------------------------------------------------------------------------------|
+| `--output FORMAT`       | Format de sortie : `pretty` (défaut) ou `csv` (séparateur `;`)                               |
+| `--sort-by COLUMN`      | Trier par colonne : `nom`, `type`, `encodage`, `modele`, `date`, `sequence`, `transformer` (défaut: `sequence`) |
+| `--sort-direction DIR`  | Sens du tri : `asc` (défaut) ou `desc`                                                       |
+
+Colonnes affichées : `Nom`, `Type`, `Encodage`, `Modèle`, `Date création` (formatée `jj/MM/aaaa`), `Séquence`, `Transformer` (expression `transform_expr`, vide si non définie).
+
+Exemples :
+
+```bash
+odoo-cli barcode-rules list
+odoo-cli barcode-rules list --output csv
+odoo-cli barcode-rules list --sort-by nom
+odoo-cli barcode-rules list --sort-by date --sort-direction desc
+```
+
+#### `barcode-rules test`
+
+Teste un code-barres contre les règles de la nomenclature par défaut, dans l'ordre de séquence ascendant. La
+règle appliquée est la **première** dont l'encodage et le motif correspondent (comportement de
+`barcode.nomenclature.parse_barcode` côté Odoo).
+
+| Option            | Description                                                           |
+|-------------------|-----------------------------------------------------------------------|
+| `BARCODE`         | Code-barres à tester (argument positionnel)                           |
+| `--output FORMAT` | Format de sortie : `pretty` (défaut) ou `csv` (séparateur `;`)        |
+
+Colonnes affichées : `Séq.`, `Nom`, `Type`, `Encodage`, `Modèle`, `Match`, `Valeur`.
+
+- `Match` :
+  - `→` pour la règle appliquée (premier match par séquence)
+  - `✓` pour les autres règles qui matcheraient aussi mais ne s'appliquent pas (séquence plus grande)
+  - `✗` pour celles qui ne matchent pas (encodage incompatible ou motif différent)
+- `Valeur` : valeur numérique extraite quand le motif contient `{N..D..}` (les `N` forment la partie entière, les `D` la partie décimale).
+
+L'encodage est validé strictement : `ean13` exige 13 chiffres avec la somme de contrôle correcte, `ean8` huit
+chiffres avec checksum, `upca` douze chiffres avec checksum, `any` accepte n'importe quoi. Un code-barres trop
+court par rapport au motif est considéré comme ne matchant pas.
+
+Une ligne stderr résume la règle appliquée (avec la valeur extraite le cas échéant) ou indique
+« Aucune règle applicable ».
+
+Exemples :
+
+```bash
+odoo-cli barcode-rules test 0211100012347
+odoo-cli barcode-rules test "02154654654"
+odoo-cli barcode-rules test PACK0001 --output csv
+```
+
 ### `cooperators` — gérer les coopérateurs
 
 #### `cooperators list`
@@ -118,8 +179,13 @@ Liste les coopérateurs (membres de `res.partner` ayant souscrit du capital via 
 | `--no-email`            | N'afficher que les coopérateurs sans email                                                                        |
 | `--duplicate-email`     | N'afficher que les coopérateurs partageant leur email avec au moins un autre ; les lignes sont groupées par email |
 | `--group-by GROUP`      | Grouper la sortie. Valeur acceptée : `binome` — affiche le binôme (`is_associated_people=true`) sous le principal |
-| `--sort-by COLUMN`      | Trier par colonne : `id`, `nom`, `prenom`, `email`, `adresse`, `parts`, `capital`, `inscription`                  |
+| `--exclude-binomes`     | Exclut les coopérateurs qui sont eux-mêmes des binômes (`is_associated_people=true`)                              |
+| `--status STATUS`       | Filtre par statut coopératif (`cooperative_state` d'Odoo) ; répétable pour combiner plusieurs statuts             |
+| `--sort-by COLUMN`      | Trier par colonne : `id`, `nom`, `prenom`, `email`, `adresse`, `parts`, `capital`, `inscription`, `statut`        |
 | `--sort-direction DIR`  | Sens du tri : `asc` (défaut) ou `desc` ; appliqué uniquement avec `--sort-by`                                     |
+
+La colonne `Statut` correspond au champ `cooperative_state` d'Odoo. Valeurs possibles : `not_concerned`, `unsubscribed`,
+`exempted`, `vacation`, `up_to_date`, `alert`, `suspended`, `delay`, `blocked`, `unpayed`.
 
 La colonne `Inscription` correspond à la date de la première facture de souscription au capital (état `paid`),
 formatée en `jj/MM/aaaa`.
@@ -142,6 +208,9 @@ odoo-cli cooperators list --no-email
 odoo-cli cooperators list --group-by binome
 odoo-cli cooperators list --sort-by capital --sort-direction desc
 odoo-cli cooperators list --sort-by inscription
+odoo-cli cooperators list --status up_to_date
+odoo-cli cooperators list --status alert --status suspended
+odoo-cli cooperators list --exclude-binomes
 ```
 
 ### `creneaux` — gérer les créneaux (`shift.template`)
@@ -224,6 +293,29 @@ Exemples :
 odoo-cli creneaux adjust-ftop-seats --begin-date 20/04/2026 --end-date 20/07/2026
 odoo-cli creneaux adjust-ftop-seats --begin-date 20/04/2026 --end-date 20/07/2026 --dry-run
 odoo-cli creneaux adjust-ftop-seats --begin-date 24/05/2026 --end-date 31/05/2026 --include-draft
+```
+
+#### `creneaux alert`
+
+Liste les services (`shift.shift`) en `draft` ou `confirm` dont `date_begin` est compris entre maintenant et
+J+1 23:59 et pour lesquels `seats_reserved < seats_min` (les services avec `seats_min = 0` sont exclus). Utile
+pour repérer rapidement les créneaux qui risquent de manquer de monde dans les prochaines 24-48h.
+
+| Option              | Description                                                              |
+|---------------------|--------------------------------------------------------------------------|
+| `--output FORMAT`   | Format de sortie : `pretty` (défaut), `csv` (séparateur `;`) ou `json`   |
+| `--begin-date DATE` | Date de début (jj/MM/aaaa) ; défaut: maintenant (00:00:00 si fourni)     |
+| `--end-date DATE`   | Date de fin (jj/MM/aaaa) ; défaut: J+1 23:59 (23:59:59 si fourni)        |
+
+Tri par date de début, puis nom.
+
+Exemples :
+
+```bash
+odoo-cli creneaux alert
+odoo-cli creneaux alert --output csv
+odoo-cli creneaux alert --output json
+odoo-cli creneaux alert --begin-date 19/05/2026 --end-date 26/05/2026
 ```
 
 ## Tests

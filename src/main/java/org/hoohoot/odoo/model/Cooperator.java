@@ -10,5 +10,7 @@ public record Cooperator(
         String address,
         double parts,
         long capital,
-        LocalDate inscriptionDate
+        LocalDate inscriptionDate,
+        String status,
+        boolean isBinome
 ) {}
