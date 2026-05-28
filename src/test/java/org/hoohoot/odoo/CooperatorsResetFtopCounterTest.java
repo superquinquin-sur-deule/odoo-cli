@@ -19,7 +19,9 @@ class CooperatorsResetFtopCounterTest {
     void resetsAllFtopCounterEvents(QuarkusMainLauncher launcher) {
         WireMockOdooResource.expect(
                 Stub.FTOP_COUNTER_EVENTS_READ,
-                Stub.SHIFT_COUNTER_EVENT_WRITE);
+                Stub.SHIFT_COUNTER_EVENT_WRITE,
+                Stub.FTOP_PARTNERS_DISPLAY_READ,
+                Stub.SHIFT_COUNTER_EVENT_CREATE);
 
         LaunchResult result = launcher.launch("cooperators", "reset-ftop-counter");
 
@@ -27,13 +29,16 @@ class CooperatorsResetFtopCounterTest {
         assertThat(result.getOutput())
                 .contains("ARDOUIN PERO, Joëlle")
                 .contains("BELVA, Frederic")
-                .contains("LONGUEVAL, Bertrande");
-        assertThat(result.getErrorOutput()).contains("3 event").contains("3 coopérateur");
+                .contains("LONGUEVAL, Bertrande")
+                .contains("→ 0");
+        assertThat(result.getErrorOutput()).contains("3 event").contains("3 compteur");
     }
 
     @Test
     void dryRunDoesNotWrite(QuarkusMainLauncher launcher) {
-        WireMockOdooResource.expect(Stub.FTOP_COUNTER_EVENTS_READ);
+        WireMockOdooResource.expect(
+                Stub.FTOP_COUNTER_EVENTS_READ,
+                Stub.FTOP_PARTNERS_DISPLAY_READ);
 
         LaunchResult result = launcher.launch("cooperators", "reset-ftop-counter", "--dry-run");
 
@@ -43,13 +48,13 @@ class CooperatorsResetFtopCounterTest {
     }
 
     @Test
-    void reportsZeroWhenNoEvents(QuarkusMainLauncher launcher) {
-        WireMockOdooResource.expect(Stub.NO_COUNTER_EVENTS);
+    void reportsZeroWhenNothingToDo(QuarkusMainLauncher launcher) {
+        WireMockOdooResource.expect(Stub.NO_COUNTER_EVENTS, Stub.NO_FTOP_PARTNERS);
 
         LaunchResult result = launcher.launch("cooperators", "reset-ftop-counter");
 
         assertThat(result.exitCode()).isZero();
-        assertThat(result.getErrorOutput()).contains("0 event");
+        assertThat(result.getErrorOutput()).contains("0 event").contains("0 compteur");
     }
 
     @Test
@@ -62,7 +67,9 @@ class CooperatorsResetFtopCounterTest {
     void partnerIdFilterRestrictsDomain(QuarkusMainLauncher launcher) {
         WireMockOdooResource.expect(
                 Stub.FTOP_COUNTER_EVENTS_PARTNER_FILTER,
-                Stub.SHIFT_COUNTER_EVENT_WRITE);
+                Stub.SHIFT_COUNTER_EVENT_WRITE,
+                Stub.FTOP_PARTNERS_DISPLAY_PARTNER_FILTER,
+                Stub.SHIFT_COUNTER_EVENT_CREATE);
 
         LaunchResult result = launcher.launch(
                 "cooperators", "reset-ftop-counter",
@@ -73,6 +80,6 @@ class CooperatorsResetFtopCounterTest {
                 .contains("ARDOUIN PERO, Joëlle")
                 .contains("LONGUEVAL, Bertrande")
                 .doesNotContain("BELVA, Frederic");
-        assertThat(result.getErrorOutput()).contains("2 event").contains("2 coopérateur");
+        assertThat(result.getErrorOutput()).contains("2 event").contains("2 compteur");
     }
 }

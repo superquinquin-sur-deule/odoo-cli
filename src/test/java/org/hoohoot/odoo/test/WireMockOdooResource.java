@@ -146,6 +146,21 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
             ]
             """;
 
+    private static final String FTOP_PARTNERS_DISPLAY_JSON = """
+            [
+              {"id":1689,"name":"ARDOUIN PERO, Joëlle","display_ftop_points":3.0},
+              {"id":1816,"name":"BELVA, Frederic","display_ftop_points":1.0},
+              {"id":1879,"name":"LONGUEVAL, Bertrande","display_ftop_points":1.0}
+            ]
+            """;
+
+    private static final String FTOP_PARTNERS_DISPLAY_PARTNER_FILTER_JSON = """
+            [
+              {"id":1689,"name":"ARDOUIN PERO, Joëlle","display_ftop_points":3.0},
+              {"id":1879,"name":"LONGUEVAL, Bertrande","display_ftop_points":1.0}
+            ]
+            """;
+
     public enum Stub {
         PARTNERS {
             @Override
@@ -377,6 +392,45 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
                         .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
                         .withRequestBody(matchingJsonPath("$.params.args[5][0][?(@[0] == 'partner_id')][1]", equalTo("in")))
                         .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + FTOP_COUNTER_EVENTS_PARTNER_FILTER_JSON + "}")));
+            }
+        },
+        SHIFT_COUNTER_EVENT_CREATE {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("shift.counter.event")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("create")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":999}")));
+            }
+        },
+        FTOP_PARTNERS_DISPLAY_READ {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][0][0]", equalTo("display_ftop_points")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + FTOP_PARTNERS_DISPLAY_JSON + "}")));
+            }
+        },
+        FTOP_PARTNERS_DISPLAY_PARTNER_FILTER {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][?(@[0] == 'id')][1]", equalTo("in")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + FTOP_PARTNERS_DISPLAY_PARTNER_FILTER_JSON + "}")));
+            }
+        },
+        NO_FTOP_PARTNERS {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][0][0]", equalTo("display_ftop_points")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + EMPTY_ARRAY + "}")));
             }
         };
 
