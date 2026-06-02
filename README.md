@@ -11,6 +11,7 @@ CLI Quarkus 3 (Java 21) qui interroge une instance Odoo v12 + Module FoodCoop vi
 - [Commandes](#commandes)
   - [`articles` — gérer les articles (`product.template`)](#articles--gérer-les-articles-producttemplate)
     - [`articles update-internal-references`](#articles-update-internal-references)
+    - [`articles apply-supplier-coefficient`](#articles-apply-supplier-coefficient)
   - [`barcode-rules` — gérer les règles de code-barres](#barcode-rules--gérer-les-règles-de-code-barres)
     - [`barcode-rules list`](#barcode-rules-list)
     - [`barcode-rules test`](#barcode-rules-test)
@@ -107,6 +108,52 @@ Exemple :
 ```bash
 odoo-cli articles update-internal-references --csv produits.csv
 odoo-cli articles update-internal-references --csv produits.csv --dry-run
+```
+
+#### `articles apply-supplier-coefficient`
+
+Applique un coefficient (typiquement une **surtaxe carburant**) à tous les produits d'un fournisseur,
+en l'affectant à un slot de coefficient libre (`coeffN_id`) de chaque `product.template`. Le prix de
+vente calculé (`list_price`) est alors recalculé par Odoo à partir du `base_price` et de la chaîne de
+coefficients. Le `product.coefficient` est retrouvé par son nom, ou créé s'il n'existe pas.
+
+| Option                 | Description                                                                                          |
+|------------------------|------------------------------------------------------------------------------------------------------|
+| `--supplier-id ID`     | Id du fournisseur (`res.partner`). Exclusif avec `--supplier-name`.                                  |
+| `--supplier-name NOM`  | Nom exact du fournisseur (résolu parmi les `res.partner` `supplier=true`). Exclusif avec `--supplier-id`. |
+| `--name NOM`           | Nom du `product.coefficient` à appliquer (ex. « Surtaxe carburant 2026 »). Requis.                   |
+| `--value VALEUR`       | Valeur du coefficient (ex. `0.02` = +2 %). Requis.                                                   |
+| `--operation-type TYPE`| Type d'opération : `multiplier` (défaut) ou `fixed`.                                                 |
+| `--slot N`             | Slot de coefficient à forcer (`coeffN_id`, 1-9). Si omis : premier slot libre parmi `coeff2`..`coeff6`. |
+| `--dry-run`            | Simule l'exécution sans écrire dans Odoo (lectures réelles, aucune création/écriture).               |
+
+Comportement :
+
+- Le fournisseur peut être désigné par `--supplier-id` ou `--supplier-name` (exactement un des deux). Un nom
+  ambigu ou introuvable renvoie le code 2.
+- Le coefficient est retrouvé via `product.coefficient` par son `name`. S'il existe avec une valeur ou un type
+  différent de la demande, un avertissement est émis sur stderr et la **valeur existante est conservée** (le
+  coefficient n'est jamais modifié). S'il n'existe pas, il est créé (sauf en `--dry-run`).
+- Les produits sont récupérés via `product.supplierinfo` (`name = <fournisseur>`).
+- Pour chaque produit : s'il porte déjà ce coefficient (dans un quelconque slot `coeff1`..`coeff9`), il est
+  **sauté** (idempotent). Sinon, le coefficient est écrit dans le slot cible — soit celui forcé par `--slot`,
+  soit le premier libre parmi `coeff2`..`coeff6`. Si le slot forcé est occupé, ou qu'aucun slot libre n'est
+  disponible, le produit est sauté et listé.
+
+Exemple :
+
+```bash
+# Valider d'abord en dry-run
+odoo-cli articles apply-supplier-coefficient --supplier-name "ALVEUS GmbH" \
+  --name "Surtaxe carburant 2026" --value 0.02 --dry-run
+
+# Puis appliquer
+odoo-cli articles apply-supplier-coefficient --supplier-id 328 \
+  --name "Surtaxe carburant 2026" --value 0.02
+
+# Forcer un slot précis
+odoo-cli articles apply-supplier-coefficient --supplier-id 328 \
+  --name "Surtaxe carburant 2026" --value 0.02 --slot 5
 ```
 
 ### `barcode-rules` — gérer les règles de code-barres

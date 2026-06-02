@@ -161,6 +161,34 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
             ]
             """;
 
+    private static final String COEFFICIENT_FOUND_JSON = """
+            [
+              {"id":500,"name":"Surtaxe carburant 2026","value":0.02,"operation_type":"multiplier"}
+            ]
+            """;
+
+    private static final String SUPPLIERINFO_FOR_COEFF_JSON = """
+            [
+              {"id":2001,"product_tmpl_id":[101,"Produit A"]},
+              {"id":2002,"product_tmpl_id":[102,"Produit B"]},
+              {"id":2003,"product_tmpl_id":[103,"Produit C"]}
+            ]
+            """;
+
+    private static final String PRODUCT_TEMPLATE_COEFF_JSON = """
+            [
+              {"id":101,"name":"Produit A","base_price":10.0,"list_price":12.0,"coeff1_id":false,"coeff2_id":false,"coeff3_id":false,"coeff4_id":false,"coeff5_id":false,"coeff6_id":false,"coeff7_id":false,"coeff8_id":false,"coeff9_id":[300,"Marge fonctionnement 25%"]},
+              {"id":102,"name":"Produit B","base_price":20.0,"list_price":24.0,"coeff1_id":false,"coeff2_id":[200,"Transport Beyaert"],"coeff3_id":false,"coeff4_id":false,"coeff5_id":false,"coeff6_id":false,"coeff7_id":false,"coeff8_id":false,"coeff9_id":[300,"Marge fonctionnement 25%"]},
+              {"id":103,"name":"Produit C","base_price":30.0,"list_price":36.0,"coeff1_id":false,"coeff2_id":false,"coeff3_id":false,"coeff4_id":[500,"Surtaxe carburant 2026"],"coeff5_id":false,"coeff6_id":false,"coeff7_id":false,"coeff8_id":false,"coeff9_id":[300,"Marge fonctionnement 25%"]}
+            ]
+            """;
+
+    private static final String SUPPLIER_BY_NAME_JSON = """
+            [
+              {"id":328,"name":"ALVEUS GmbH"}
+            ]
+            """;
+
     public enum Stub {
         PARTNERS {
             @Override
@@ -430,6 +458,80 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
                         .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
                         .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
                         .withRequestBody(matchingJsonPath("$.params.args[5][0][0][0]", equalTo("display_ftop_points")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + EMPTY_ARRAY + "}")));
+            }
+        },
+        COEFFICIENT_FOUND {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.coefficient")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + COEFFICIENT_FOUND_JSON + "}")));
+            }
+        },
+        COEFFICIENT_NOT_FOUND {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.coefficient")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + EMPTY_ARRAY + "}")));
+            }
+        },
+        COEFFICIENT_CREATE {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.coefficient")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("create")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":500}")));
+            }
+        },
+        SUPPLIERINFO_FOR_COEFF {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.supplierinfo")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + SUPPLIERINFO_FOR_COEFF_JSON + "}")));
+            }
+        },
+        NO_SUPPLIERINFO {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.supplierinfo")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + EMPTY_ARRAY + "}")));
+            }
+        },
+        PRODUCT_TEMPLATE_COEFF_READ {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.template")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PRODUCT_TEMPLATE_COEFF_JSON + "}")));
+            }
+        },
+        SUPPLIER_BY_NAME {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][?(@[0] == 'supplier')][2]", equalTo("true")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + SUPPLIER_BY_NAME_JSON + "}")));
+            }
+        },
+        SUPPLIER_BY_NAME_NONE {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][?(@[0] == 'supplier')][2]", equalTo("true")))
                         .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + EMPTY_ARRAY + "}")));
             }
         };
