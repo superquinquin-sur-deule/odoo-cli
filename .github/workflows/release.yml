@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -95,3 +96,44 @@ jobs:
           name: ${{ needs.tag.outputs.new_tag }}
           body: ${{ needs.tag.outputs.changelog }}
           files: artifacts/*
+
+  docker:
+    needs: [tag, build]
+    if: needs.tag.outputs.new_version != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 + Maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Align pom.xml version with release version
+        run: mvn -B versions:set -DnewVersion=${{ needs.tag.outputs.new_version }} -DgenerateBackupPoms=false
+
+      - name: Build native binary (in-container, glibc-matched to runtime image)
+        run: mvn -B package -Dnative -DskipTests -Dquarkus.native.container-build=true
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/main/docker/Dockerfile.native-micro
+          push: true
+          tags: |
+            ghcr.io/superquinquin-sur-deule/odoo-cli:${{ needs.tag.outputs.new_version }}
+            ghcr.io/superquinquin-sur-deule/odoo-cli:latest
