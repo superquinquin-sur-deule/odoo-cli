@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
@@ -186,6 +187,14 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
     private static final String SUPPLIER_BY_NAME_JSON = """
             [
               {"id":328,"name":"ALVEUS GmbH"}
+            ]
+            """;
+
+    private static final String MEMBERS_SINCE_JSON = """
+            [
+              {"id":2595,"name":"GRAS, Pierre-Louis","email":"plmp.gras@wanadoo.fr ","create_date":"2026-06-06 09:00:54"},
+              {"id":2594,"name":"FLORET, Faustine","email":"faust.floret@gmail.com","create_date":"2026-06-06 08:56:40"},
+              {"id":2596,"name":"Madonna","email":"madonna@example.com","create_date":"2026-06-07 10:00:00"}
             ]
             """;
 
@@ -534,6 +543,46 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
                         .withRequestBody(matchingJsonPath("$.params.args[5][0][?(@[0] == 'supplier')][2]", equalTo("true")))
                         .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + EMPTY_ARRAY + "}")));
             }
+        },
+        MEMBERS_SINCE {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][?(@[0] == 'is_member')][2]", equalTo("true")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][?(@[0] == 'create_date')][1]", equalTo(">=")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + MEMBERS_SINCE_JSON + "}")));
+            }
+        },
+        BREVO_CONTACT_CREATED {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/v3/contacts")
+                        .withHeader("api-key", equalTo("test-key"))
+                        .withRequestBody(matchingJsonPath("$.email"))
+                        .withRequestBody(matchingJsonPath("$.attributes.NOM"))
+                        .withRequestBody(matchingJsonPath("$.listIds[0]", equalTo("42")))
+                        .withRequestBody(matchingJsonPath("$.updateEnabled", equalTo("false")))
+                        .willReturn(aResponse()
+                                .withStatus(201)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody("{\"id\":123}")));
+            }
+        },
+        BREVO_CONTACT_DUPLICATE {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/v3/contacts")
+                        .withHeader("api-key", equalTo("test-key"))
+                        .withRequestBody(matchingJsonPath("$.email", equalTo("faust.floret@gmail.com")))
+                        .withRequestBody(matchingJsonPath("$.attributes.NOM", equalTo("FLORET")))
+                        .withRequestBody(matchingJsonPath("$.attributes.PRENOM", equalTo("Faustine")))
+                        .willReturn(aResponse()
+                                .withStatus(400)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody("{\"code\":\"duplicate_parameter\",\"message\":\"Contact already exist\"}")));
+            }
         };
 
         abstract void register(WireMockServer s);
@@ -567,7 +616,10 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
             }
         }
 
-        return Map.of("odoo.url", server.baseUrl());
+        return Map.of(
+                "odoo.url", server.baseUrl(),
+                "brevo.url", server.baseUrl(),
+                "brevo.api-key", "test-key");
     }
 
     @Override

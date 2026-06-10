@@ -18,6 +18,7 @@ CLI Quarkus 3 (Java 21) qui interroge une instance Odoo v12 + Module FoodCoop vi
   - [`cooperators` — gérer les coopérateurs](#cooperators--gérer-les-coopérateurs)
     - [`cooperators list`](#cooperators-list)
     - [`cooperators reset-ftop-counter`](#cooperators-reset-ftop-counter)
+    - [`cooperators sync-brevo`](#cooperators-sync-brevo)
   - [`creneaux` — gérer les créneaux (`shift.template`)](#creneaux--gérer-les-créneaux-shifttemplate)
     - [`creneaux list`](#creneaux-list)
     - [`creneaux create-services`](#creneaux-create-services)
@@ -281,6 +282,29 @@ odoo-cli cooperators reset-ftop-counter --dry-run
 odoo-cli cooperators reset-ftop-counter
 odoo-cli cooperators reset-ftop-counter --before-date 31/08/2026
 odoo-cli cooperators reset-ftop-counter --partner-id 1689 --partner-id 1879
+```
+
+#### `cooperators sync-brevo`
+
+Synchronise les nouveaux coopérateurs (membres `res.partner` avec `is_member=true` et un email, créés depuis
+`--since`) vers une liste de contacts Brevo. Chaque contact est créé via `POST /v3/contacts` avec les attributs
+`NOM` / `PRENOM` (découpés depuis le `name` Odoo au format `"NOM, Prénom"`) et ajouté à la liste donnée.
+Les contacts déjà présents dans Brevo (`duplicate_parameter`) sont logués et ignorés ; la commande continue.
+Le code de sortie est `1` si au moins une erreur Brevo (hors doublon) est survenue.
+
+Nécessite la clé d'API Brevo dans la variable d'environnement `BREVO_API_KEY` (fichier `.env` à la racine).
+
+| Option               | Description                                                                       |
+|----------------------|------------------------------------------------------------------------------------|
+| `--since DATE`       | **Requis.** Ne traite que les coopérateurs dont `create_date >= DATE 00:00:00` (jj/MM/aaaa) |
+| `--brevo-list-id ID` | **Requis.** Id de la liste de contacts dans Brevo                                  |
+| `--dry-run`          | Log seulement les coopérateurs qui auraient été ajoutés, sans appeler Brevo        |
+
+Exemples :
+
+```bash
+odoo-cli cooperators sync-brevo --since 06/06/2026 --brevo-list-id 42 --dry-run
+odoo-cli cooperators sync-brevo --since 06/06/2026 --brevo-list-id 42
 ```
 
 ### `creneaux` — gérer les créneaux (`shift.template`)

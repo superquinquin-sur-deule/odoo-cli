@@ -2,6 +2,7 @@ package org.hoohoot.odoo.command;
 
 import org.hoohoot.odoo.command.cooperators.ListCommand;
 import org.hoohoot.odoo.command.cooperators.ResetFtopCounterCommand;
+import org.hoohoot.odoo.command.cooperators.SyncBrevoCommand;
 import picocli.CommandLine.Command;
 
 @Command(
@@ -10,7 +11,8 @@ import picocli.CommandLine.Command;
         mixinStandardHelpOptions = true,
         subcommands = {
                 ListCommand.class,
-                ResetFtopCounterCommand.class
+                ResetFtopCounterCommand.class,
+                SyncBrevoCommand.class
         }
 )
 public class CooperatorsCommand {
