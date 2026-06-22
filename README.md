@@ -19,6 +19,7 @@ CLI Quarkus 3 (Java 21) qui interroge une instance Odoo v12 + Module FoodCoop vi
     - [`cooperators list`](#cooperators-list)
     - [`cooperators reset-ftop-counter`](#cooperators-reset-ftop-counter)
     - [`cooperators sync-brevo`](#cooperators-sync-brevo)
+    - [`cooperators fix-binome-emails`](#cooperators-fix-binome-emails)
   - [`creneaux` — gérer les créneaux (`shift.template`)](#creneaux--gérer-les-créneaux-shifttemplate)
     - [`creneaux list`](#creneaux-list)
     - [`creneaux create-services`](#creneaux-create-services)
@@ -305,6 +306,33 @@ Exemples :
 ```bash
 odoo-cli cooperators sync-brevo --since 06/06/2026 --brevo-list-id 42 --dry-run
 odoo-cli cooperators sync-brevo --since 06/06/2026 --brevo-list-id 42
+```
+
+#### `cooperators fix-binome-emails`
+
+Rattrape l'email manquant sur les **contacts binômes**. Un coopérateur binôme est créé en double dans Odoo :
+un membre autonome (avec son email) **et** un contact enfant sur le membre principal (`res.partner` avec
+`is_associated_people=true`). Lors de la création de ces contacts, l'email n'a pas été reporté.
+
+La commande lit les contacts binômes sans email, puis pour chacun cherche l'email depuis son **homonyme**
+(même `name`, hors binôme, possédant un email). L'email n'est recopié que s'il existe **exactement un email
+candidat** pour ce nom ; sinon le contact est listé comme :
+
+- **sans source** : aucun homonyme avec email (binôme qui n'est pas membre autonome) — à traiter manuellement ;
+- **ambigu** : plusieurs emails distincts pour le même nom — à arbitrer manuellement.
+
+Le détail des corrections part sur la sortie standard, le récapitulatif et les cas ignorés sur l'erreur
+standard. Utiliser `--dry-run` pour simuler sans rien écrire avant d'appliquer pour de bon.
+
+| Option       | Description                                  |
+|--------------|----------------------------------------------|
+| `--dry-run`  | Simule l'exécution sans écrire dans Odoo     |
+
+Exemples :
+
+```bash
+odoo-cli cooperators fix-binome-emails --dry-run   # simulation
+odoo-cli cooperators fix-binome-emails             # applique les corrections
 ```
 
 ### `creneaux` — gérer les créneaux (`shift.template`)

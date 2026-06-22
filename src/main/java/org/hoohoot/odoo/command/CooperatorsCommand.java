@@ -1,5 +1,6 @@
 package org.hoohoot.odoo.command;
 
+import org.hoohoot.odoo.command.cooperators.FixBinomeEmailsCommand;
 import org.hoohoot.odoo.command.cooperators.ListCommand;
 import org.hoohoot.odoo.command.cooperators.ResetFtopCounterCommand;
 import org.hoohoot.odoo.command.cooperators.SyncBrevoCommand;
@@ -12,7 +13,8 @@ import picocli.CommandLine.Command;
         subcommands = {
                 ListCommand.class,
                 ResetFtopCounterCommand.class,
-                SyncBrevoCommand.class
+                SyncBrevoCommand.class,
+                FixBinomeEmailsCommand.class
         }
 )
 public class CooperatorsCommand {

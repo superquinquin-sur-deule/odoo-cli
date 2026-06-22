@@ -198,6 +198,22 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
             ]
             """;
 
+    private static final String BINOME_MISSING_EMAIL_JSON = """
+            [
+              {"id":2300,"name":"RENARD, Fanny","email":false,"parent_id":[2050,"292 - FEUTRY, Simon"]},
+              {"id":9001,"name":"NOMATCH, Person","email":false,"parent_id":[3000,"500 - SOLO, Jean"]},
+              {"id":9002,"name":"AMBIGU, Two","email":false,"parent_id":[3001,"501 - DUO, Marie"]}
+            ]
+            """;
+
+    private static final String BINOME_EMAIL_SOURCES_JSON = """
+            [
+              {"id":2051,"name":"RENARD, Fanny","email":"fanny_renard@outlook.com"},
+              {"id":9003,"name":"AMBIGU, Two","email":"a@example.com"},
+              {"id":9004,"name":"AMBIGU, Two","email":"b@example.com"}
+            ]
+            """;
+
     public enum Stub {
         PARTNERS {
             @Override
@@ -582,6 +598,45 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
                                 .withStatus(400)
                                 .withHeader("Content-Type", "application/json")
                                 .withBody("{\"code\":\"duplicate_parameter\",\"message\":\"Contact already exist\"}")));
+            }
+        },
+        BINOME_CONTACTS_MISSING_EMAIL {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][?(@[0] == 'is_associated_people')][2]", equalTo("true")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + BINOME_MISSING_EMAIL_JSON + "}")));
+            }
+        },
+        BINOME_NO_MISSING_EMAIL {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][?(@[0] == 'is_associated_people')][2]", equalTo("true")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + EMPTY_ARRAY + "}")));
+            }
+        },
+        BINOME_EMAIL_SOURCES {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][?(@[0] == 'name')][1]", equalTo("in")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + BINOME_EMAIL_SOURCES_JSON + "}")));
+            }
+        },
+        PARTNER_EMAIL_WRITE {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("write")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
             }
         };
 
