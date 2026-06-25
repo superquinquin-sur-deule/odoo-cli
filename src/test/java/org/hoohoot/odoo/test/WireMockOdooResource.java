@@ -214,6 +214,27 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
             ]
             """;
 
+    private static final String PRODUCTS_CREATED_SINCE_JSON = """
+            [
+              {"id":34125,"name":"Produit Créé A","create_date":"2026-05-01 07:55:53","create_uid":[28,"Marie Martin"],"product_variant_ids":[33747]},
+              {"id":34039,"name":"Produit Créé B","create_date":"2026-05-12 15:21:11","create_uid":[28,"Marie Martin"],"product_variant_ids":[33700]}
+            ]
+            """;
+
+    private static final String POS_ORDER_LINE_QTY_JSON = """
+            [
+              {"product_id_count":40,"qty":125.219,"product_id":[33747,"Produit Créé A"]},
+              {"product_id_count":12,"qty":39.0,"product_id":[33700,"Produit Créé B"]}
+            ]
+            """;
+
+    private static final String PRODUCTS_ARCHIVED_SINCE_JSON = """
+            [
+              {"id":18184,"name":"Produit Archivé A","create_date":"2026-01-28 15:21:01","write_date":"2026-05-25 09:39:22","write_uid":[28,"Marie Martin"]},
+              {"id":24781,"name":"Produit Archivé B","create_date":"2026-01-28 17:23:46","write_date":"2026-05-25 09:17:24","write_uid":[28,"Marie Martin"]}
+            ]
+            """;
+
     public enum Stub {
         PARTNERS {
             @Override
@@ -637,6 +658,49 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
                         .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner")))
                         .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("write")))
                         .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":true}")));
+            }
+        },
+        PRODUCTS_CREATED_SINCE {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.template")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][0][0]", equalTo("create_date")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PRODUCTS_CREATED_SINCE_JSON + "}")));
+            }
+        },
+        PRODUCTS_ARCHIVED_SINCE {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.template")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .withRequestBody(matchingJsonPath("$.params.args[5][0][0][0]", equalTo("active")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PRODUCTS_ARCHIVED_SINCE_JSON + "}")));
+            }
+        },
+        POS_ORDER_LINE_QTY {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("pos.order.line")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("read_group")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + POS_ORDER_LINE_QTY_JSON + "}")));
+            }
+        },
+        BREVO_EMAIL_SENT {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/v3/smtp/email")
+                        .withHeader("api-key", equalTo("test-key"))
+                        .withRequestBody(matchingJsonPath("$.sender.email"))
+                        .withRequestBody(matchingJsonPath("$.to[0].email"))
+                        .withRequestBody(matchingJsonPath("$.attachment[0].content"))
+                        .willReturn(aResponse()
+                                .withStatus(201)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody("{\"messageId\":\"<abc@brevo>\"}")));
             }
         };
 

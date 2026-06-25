@@ -1,6 +1,7 @@
 package org.hoohoot.odoo.command;
 
 import org.hoohoot.odoo.command.articles.ApplySupplierCoefficientCommand;
+import org.hoohoot.odoo.command.articles.MonthlyReportCommand;
 import org.hoohoot.odoo.command.articles.UpdateInternalReferencesCommand;
 import picocli.CommandLine.Command;
 
@@ -10,7 +11,8 @@ import picocli.CommandLine.Command;
         mixinStandardHelpOptions = true,
         subcommands = {
                 UpdateInternalReferencesCommand.class,
-                ApplySupplierCoefficientCommand.class
+                ApplySupplierCoefficientCommand.class,
+                MonthlyReportCommand.class
         }
 )
 public class ArticlesCommand {
