@@ -1,5 +1,6 @@
 package org.hoohoot.odoo.command;
 
+import org.hoohoot.odoo.command.cooperators.ExportPartsCommand;
 import org.hoohoot.odoo.command.cooperators.FixBinomeEmailsCommand;
 import org.hoohoot.odoo.command.cooperators.ListCommand;
 import org.hoohoot.odoo.command.cooperators.ResetFtopCounterCommand;
@@ -12,6 +13,7 @@ import picocli.CommandLine.Command;
         mixinStandardHelpOptions = true,
         subcommands = {
                 ListCommand.class,
+                ExportPartsCommand.class,
                 ResetFtopCounterCommand.class,
                 SyncBrevoCommand.class,
                 FixBinomeEmailsCommand.class

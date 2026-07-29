@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Odoo FoodCoop — Outils achats",
+  "version": "0.1.0",
+  "description": "Ajoute des outils aux utilisateurs Odoo + module FoodCoop. Feature 1 : export CSV d'une commande d'achat pour le fournisseur.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Odoo FoodCoop — Outils achats",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "host_permissions": [
+    "https://*.foodcoop12.trobz.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.foodcoop12.trobz.com/*"
+      ],
+      "js": [
+        "src/odoo-rpc.js",
+        "src/csv.js",
+        "src/export.js",
+        "src/content.js"
+      ],
+      "css": [
+        "styles/button.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

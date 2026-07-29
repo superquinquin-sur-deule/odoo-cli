@@ -17,6 +17,7 @@ CLI Quarkus 3 (Java 21) qui interroge une instance Odoo v12 + Module FoodCoop vi
     - [`barcode-rules test`](#barcode-rules-test)
   - [`cooperators` — gérer les coopérateurs](#cooperators--gérer-les-coopérateurs)
     - [`cooperators list`](#cooperators-list)
+    - [`cooperators export-parts`](#cooperators-export-parts)
     - [`cooperators reset-ftop-counter`](#cooperators-reset-ftop-counter)
     - [`cooperators sync-brevo`](#cooperators-sync-brevo)
     - [`cooperators fix-binome-emails`](#cooperators-fix-binome-emails)
@@ -261,6 +262,28 @@ odoo-cli cooperators list --sort-by inscription
 odoo-cli cooperators list --status up_to_date
 odoo-cli cooperators list --status alert --status suspended
 odoo-cli cooperators list --exclude-binomes
+```
+
+#### `cooperators export-parts`
+
+Exporte les parts sociales détenues par coopérateur (lignes `res.partner.owned.share` de la catégorie choisie).
+Le montant total est calculé comme nombre de parts × prix unitaire (`list_price` du produit associé à la
+catégorie `capital.fundraising.category`).
+
+| Option            | Description                                                        |
+|-------------------|--------------------------------------------------------------------|
+| `--category NOM`  | Catégorie de parts à exporter (défaut : `Parts A`)                 |
+| `--output FORMAT` | Format de sortie : `pretty` (défaut) ou `csv` (séparateur `;`)     |
+
+Colonnes : `Nom`, `Nombre de parts`, `Montant total`. Les parts sont agrégées par coopérateur et triées par nom
+(case-insensitive). Un résumé (nombre de détenteurs, total de parts, montant total) est affiché sur stderr.
+
+Exemples :
+
+```bash
+odoo-cli cooperators export-parts
+odoo-cli cooperators export-parts --output csv > parts-a.csv
+odoo-cli cooperators export-parts --category "Parts B"
 ```
 
 #### `cooperators reset-ftop-counter`

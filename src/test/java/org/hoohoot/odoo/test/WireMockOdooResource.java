@@ -235,6 +235,27 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
             ]
             """;
 
+    private static final String CAPITAL_CATEGORY_JSON = """
+            [
+              {"id":1,"name":"Parts A","product_id":[14472,"Parts A Souscription COOP"]}
+            ]
+            """;
+
+    private static final String PARTS_PRODUCT_JSON = """
+            [
+              {"id":14472,"list_price":10.0}
+            ]
+            """;
+
+    private static final String OWNED_SHARES_JSON = """
+            [
+              {"partner_id":[10,"203 - AHRAS, Cemile"],"owned_share":10},
+              {"partner_id":[11,"12 - ZULU, Anna"],"owned_share":3},
+              {"partner_id":[11,"12 - ZULU, Anna"],"owned_share":2},
+              {"partner_id":[12,"7 - BERGER, Léo"],"owned_share":1}
+            ]
+            """;
+
     public enum Stub {
         PARTNERS {
             @Override
@@ -687,6 +708,42 @@ public class WireMockOdooResource implements QuarkusTestResourceLifecycleManager
                         .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("pos.order.line")))
                         .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("read_group")))
                         .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + POS_ORDER_LINE_QTY_JSON + "}")));
+            }
+        },
+        CAPITAL_CATEGORY_PARTS_A {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("capital.fundraising.category")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + CAPITAL_CATEGORY_JSON + "}")));
+            }
+        },
+        CAPITAL_CATEGORY_NONE {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("capital.fundraising.category")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + EMPTY_ARRAY + "}")));
+            }
+        },
+        PARTS_PRODUCT_PRICE {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("product.product")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + PARTS_PRODUCT_JSON + "}")));
+            }
+        },
+        OWNED_SHARES_PARTS_A {
+            @Override
+            void register(WireMockServer s) {
+                s.stubFor(post("/jsonrpc")
+                        .withRequestBody(matchingJsonPath("$.params.args[3]", equalTo("res.partner.owned.share")))
+                        .withRequestBody(matchingJsonPath("$.params.args[4]", equalTo("search_read")))
+                        .willReturn(okJson("{\"jsonrpc\":\"2.0\",\"result\":" + OWNED_SHARES_JSON + "}")));
             }
         },
         BREVO_EMAIL_SENT {
